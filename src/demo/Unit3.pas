@@ -84,7 +84,7 @@ var
   Mode: TAuthModes;
 begin
   SFTP.UserName := edUser.Text;
-  SFTP.Password := 'test123';
+  SFTP.Password := edPass.Text;
   SFTP.Host := edHost.Text;
   SFTP.Port := StrToIntDef(edPort.Text, 22);
   SFTP.KeepAlive := cbKeepAlive.Checked;
