@@ -129,7 +129,7 @@ type
     function Add: TSFTPItem;
     function IndexOf(const AItem: TSFTPItem): Integer;
     procedure ParseEntryBuffers(ABuffer, ALongEntry: PAnsiChar;
-      const AAttributes: LIBSSH2_SFTP_ATTRIBUTES);
+      const AAttributes: LIBSSH2_SFTP_ATTRIBUTES; ACodePage: Word = CP_UTF8);
     procedure SortDefault;
     property Path: String read FPath write FPath;
     property Items[const AIndex: Integer]: TSFTPItem read GetItems write SetItems; default;
@@ -170,9 +170,10 @@ type
     FOnKeybInt: TKeybInteractiveEvent;
     FOnAuthFail: TContinueEvent;
     FOnConnect: TNotifyEvent;
+    FCodePage: Word;
     function GetConnected: Boolean;
-    procedure SetAuthModes(const Value: TAuthModes);
     procedure SetConnected(const Value: Boolean);
+    procedure SetAuthModes(const Value: TAuthModes);
     procedure DoOnFingerprint(const AState: TFingerprintState; var AAction: TConnectHashAction);
     function GetVersion: String;
     function GetLibString: String;
@@ -182,6 +183,8 @@ type
     function CreateSocket: Integer; virtual;
     function ConnectSocket(var S: Integer): Boolean; virtual;
     procedure RaiseSSHError(const AMsg: String = ''; E: Integer = 0); virtual;
+    function MyEncode(const WS: WideString): AnsiString; virtual;
+    function MyDecode(const S: AnsiString): WideString; virtual;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -207,6 +210,8 @@ type
     property HashManager: IHashManager read FHashMgr write FHashMgr;
     property Connected: Boolean read GetConnected write SetConnected;
     property LibraryVersion: String read GetLibString;
+
+    property CodePage: Word read FCodePage write FCodepage default CP_UTF8;
 
     property OnFingerprint: TFingerprintEvent read FOnFingerprint write FOnFingerprint;
     property OnKeybdInteractive: TKeybInteractiveEvent read FOnKeybInt write FOnKeybInt;
@@ -275,6 +280,8 @@ type
 
 function ToOctal(X: Cardinal; const Len: Integer = 4): String;
 function FromOctal(const S: String): Cardinal;
+function EncodeStr(const WS: WideString; ACodePage: Word = CP_UTF8): AnsiString;
+function DecodeStr(const S: AnsiString; ACodePage: Word = CP_UTF8): WideString;
 
 implementation
 
@@ -332,14 +339,46 @@ begin
     Result := Copy(Result, Length(Result) - Len + 1, Len);
 end;
 
-function MyEncode(const WS: WideString): AnsiString;
+function EncodeStr(const WS: WideString; ACodePage: Word): AnsiString;
+var
+  L: Integer;
+  Flags: Cardinal;
 begin
-  Result := UTF8Encode(WS);
+  if ACodePage = CP_UTF8 then
+  begin
+    Result := UTF8Encode(WS);
+    Exit;
+  end;
+
+  Result := '';
+  Flags := 0; // WC_COMPOSITECHECK;
+  L := WideCharToMultiByte(ACodePage, Flags, @WS[1], -1, nil, 0, nil, nil);
+  if L > 1 then
+  begin
+    SetLength(Result, L - 1);
+    WideCharToMultiByte(ACodePage, Flags, @WS[1], -1, @Result[1], L - 1, nil, nil)
+  end;
 end;
 
-function MyDecode(const S: AnsiString): WideString;
+function DecodeStr(const S: AnsiString; ACodePage: Word): WideString;
+var
+  L: Integer;
+  Flags: Cardinal;
 begin
-  Result := UTF8Decode(S);
+  if ACodePage = CP_UTF8 then
+  begin
+    Result := UTF8Decode(S);
+    Exit;
+  end;
+
+  Result := '';
+  Flags := MB_PRECOMPOSED;
+  L := MultiByteToWideChar(ACodePage, Flags, PAnsiChar(@S[1]), - 1, nil, 0);
+  if L > 1 then
+  begin
+    SetLength(Result, L - 1);
+    MultiByteToWideChar(ACodePage, Flags, PAnsiChar(@S[1]), - 1, PWideChar(@Result[1]), L - 1);
+  end;
 end;
 
 { TSFTPItem }
@@ -495,7 +534,7 @@ begin
 end;
 
 procedure TSFTPItems.ParseEntryBuffers(ABuffer, ALongEntry: PAnsiChar;
-  const AAttributes: LIBSSH2_SFTP_ATTRIBUTES);
+  const AAttributes: LIBSSH2_SFTP_ATTRIBUTES; ACodePage: Word);
 
 const
   UID_POS = 3;
@@ -561,7 +600,7 @@ begin
     Exit;
 
   Item := Add;
-  Item.FileName := MyDecode(ABuffer);
+  Item.FileName := DecodeStr(ABuffer, ACodePage);
   if TestBit(AAttributes.flags, LIBSSH2_SFTP_ATTR_PERMISSIONS) then
   begin
     case AAttributes.Permissions and LIBSSH2_SFTP_S_IFMT of
@@ -808,7 +847,7 @@ type
   function UserAuthPassword: Boolean;
   begin
     Result := libssh2_userauth_password(FSession, PAnsiChar(AnsiString(FUserName)),
-      PAnsiChar(MyEncode(FPassword))) = 0;
+      PAnsiChar(AnsiString(FPassword))) = 0;
   end;
 
   procedure KbdInteractiveCallback(const Name: PAnsiChar; name_len: Integer;
@@ -1105,6 +1144,7 @@ begin
   FKeepAlive := False;
   FSockBufLen := 8 * 1024;
   FSocket := INVALID_SOCKET;
+  FCodePage := CP_UTF8;
 
   if InterlockedIncrement(GSSH2Init) = 1 then
     if libssh2_init(0) <> 0 then
@@ -1182,7 +1222,6 @@ end;
 function TSSH2Client.GetLastSSHError(E: Integer): String;
 var
   I: Integer;
-  S: String;
   P: PAnsiChar;
 begin
   if E = 0 then
@@ -1190,13 +1229,9 @@ begin
   else
     Result := 'No error';
   I := 0;
-  S := '';
   P := PAnsiChar(AnsiString(Result));
   if FSession <> nil then
-  begin
     libssh2_session_last_error(FSession, P, I, 0);
-    P := PAnsiChar(AnsiString(S + '.'));
-  end;
   Result := String(P);
 end;
 
@@ -1229,6 +1264,16 @@ end;
 function TSSH2Client.GetVersion: String;
 begin
   Result := ClassName + ' v' + SFTPCLIENT_VERSION;
+end;
+
+function TSSH2Client.MyDecode(const S: AnsiString): WideString;
+begin
+  Result := DecodeStr(S, FCodePage);
+end;
+
+function TSSH2Client.MyEncode(const WS: WideString): AnsiString;
+begin
+  Result := EncodeStr(WS, FCodePage);
 end;
 
 procedure TSSH2Client.RaiseSSHError(const AMsg: String; E: Integer);
@@ -1421,6 +1466,7 @@ var
   R, N: Integer;
 begin
   //
+  FCanceled := False;
   if libssh2_sftp_stat(FSFtp, PAnsiChar(MyEncode(ASourceFileName)), Attribs) = 0 then
   begin
     if not TestBit(Attribs.flags, LIBSSH2_SFTP_ATTR_SIZE) then
@@ -1561,7 +1607,7 @@ begin
       R := libssh2_sftp_readdir_ex(DirHandle, EntryBuffer, BUF_LEN, LongEntry, BUF_LEN, @Attribs);
       if (R <= 0) or FCanceled then
         break;
-      FItems.ParseEntryBuffers(EntryBuffer, LongEntry, Attribs);
+      FItems.ParseEntryBuffers(EntryBuffer, LongEntry, Attribs, FCodePage);
     until not True;
   finally
     FItems.EndUpdate;
