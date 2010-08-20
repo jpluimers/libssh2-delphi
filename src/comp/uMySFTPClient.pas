@@ -13,7 +13,7 @@ uses
 
 const
   AF_INET6 = 32;
-  SFTPCLIENT_VERSION = '0.4';
+  SFTPCLIENT_VERSION = '0.5';
 
 type
   TSFTPItemType = (sitUnknown, sitDirectory, sitFile, sitSymbolicLink, sitSymbolicLinkDir,
@@ -229,6 +229,8 @@ type
     FLastDirChangedOK: Boolean;
     FOnTProgress: TTransferProgress;
     FOnNoStartDir: TContinueEvent;
+    FReadBufLen: Cardinal;
+    FWriteBufLen: Cardinal;
     procedure SetCurrentDir(const Value: String);
   protected
     procedure RaiseSSHError(const AMsg: String = ''; E: Integer = 0); override;
@@ -257,6 +259,9 @@ type
     procedure SetPermissions(const APath: WideString; APerms: Cardinal); overload;
     procedure SetPermissions(const APath: WideString; const AOctalPerms: String); overload;
     function ExpandCurrentDirPath: String;
+
+    property ReadBufferLen: Cardinal read FReadBufLen write FReadBufLen;
+    property WriteBufferLen: Cardinal read FWriteBufLen write FWriteBufLen;
 
     property DirectoryItems: TSFTPItems read FItems;
     property CurrentDirectory: String read FCurrentDir write SetCurrentDir;
@@ -832,8 +837,8 @@ type
     if Pos('publickey', S) > 0 then
     begin
       if amPublicKeyViaAgent in FAuthModes then
-        Modes := Modes + [amPublicKeyViaAgent]
-      else
+        Modes := Modes + [amPublicKeyViaAgent];
+      if amPublicKey in FAuthModes then
         Modes := Modes + [amPublicKey];
     end;
     if Pos('keyboard-interactive', S) > 0 then
@@ -906,7 +911,7 @@ type
             PrevIdentity := nil;
             while True do
             begin
-              if libssh2_agent_get_identity(Agent, Identity, PrevIdentity) <= 1 then
+              if libssh2_agent_get_identity(Agent, Identity, PrevIdentity) <> 0 then
                 break;
               if libssh2_agent_userauth(Agent, PAnsiChar(AnsiString(FUserName)), Identity) = 0 then
               begin
@@ -915,9 +920,7 @@ type
               end;
               PrevIdentity := Identity;
             end;
-          end
-          else
-            OutputDebugString(PChar('Could not list agent identities: ' + GetLastSSHError));
+          end;
           libssh2_agent_disconnect(Agent);
         end;
       finally
@@ -1393,6 +1396,8 @@ begin
   FItems := TSFTPItems.Create(Self);
   FItems.Path := '';
   FLastDirChangedOK := False;
+  FReadBufLen := 16 * 1024;
+  FWriteBufLen := 8 * 1024 - 1;
 end;
 
 procedure TSFTPClient.DeleteDir(const ADirName: WideString);
@@ -1456,8 +1461,6 @@ end;
 
 procedure TSFTPClient.Get(const ASourceFileName: WideString; const ADest: TStream;
   AResume: Boolean);
-const
-  RBUF_LEN = 16 * 1024;
 var
   Attribs: LIBSSH2_SFTP_ATTRIBUTES;
   Transfered, Total: UInt64;
@@ -1485,10 +1488,10 @@ begin
       Total := Attribs.FileSize;
 
     Transfered := 0;
-    GetMem(Buf, RBUF_LEN);
+    GetMem(Buf, FReadBufLen);
     try
       repeat
-        R := libssh2_sftp_read(FHandle, Buf, RBUF_LEN);
+        R := libssh2_sftp_read(FHandle, Buf, FReadBufLen);
         if R > 0 then
         begin
           N := ADest.Write(Buf^, R);
@@ -1656,8 +1659,6 @@ end;
 
 procedure TSFTPClient.Put(const ASource: TStream; const ADestFileName: WideString;
   AOverwrite: Boolean);
-const
-  WBUF_LEN = 16 * 1024;
 var
   R, N, K: Integer;
   Mode: Integer;
@@ -1678,13 +1679,13 @@ begin
   if FHandle = nil then
     RaiseSSHError;
 
-  GetMem(Buf, WBUF_LEN);
+  GetMem(Buf, FWriteBufLen);
   StartBuf := Buf;
   Transfered := 0;
   Total := ASource.Size - ASource.Position;
   try
     repeat
-      N := ASource.Read(Buf^, WBUF_LEN);
+      N := ASource.Read(Buf^, FWriteBufLen);
       if N > 0 then
       begin
         K := N;
@@ -1788,7 +1789,7 @@ end;
 procedure TSCPClient.Get(const ASourceFileName: WideString;
   const ADest: TStream; var AStat: TStructStat);
 const
-  BUF_LEN = 8 * 1024;
+  BUF_LEN = 8 * 1024 - 1;
 var
   Channel: PLIBSSH2_CHANNEL;
   N, R, K: Integer;
@@ -1826,7 +1827,7 @@ procedure TSCPClient.Put(const ASource: TStream;
   const ADestFileName: WideString; AFileSize: UInt64; ATime, MTime: TDateTime;
   AMode: Integer);
 const
-  BUF_LEN = 8 * 1024;
+  BUF_LEN = 8 * 1024 - 1;
 var
   Channel: PLIBSSH2_CHANNEL;
   Mode: Integer;
