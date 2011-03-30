@@ -31,10 +31,10 @@ type
   TContinueEvent = procedure(ASender: TObject; var ACountinue: Boolean) of object;
 
   EWorkThreadException = class(Exception);
-    ESSH2Exception = class(Exception);
+  ESSH2Exception = class(Exception);
 
-    PAddrInfo = ^addrinfo;
-    addrinfo = record ai_flags: Integer; // AI_PASSIVE, AI_CANONNAME, AI_NUMERICHOST
+  PAddrInfo = ^addrinfo;
+  addrinfo = record ai_flags: Integer; // AI_PASSIVE, AI_CANONNAME, AI_NUMERICHOST
     ai_family: Integer; // PF_xxx
     ai_socktype: Integer; // SOCK_xxx
     ai_protocol: Integer; // 0 or IPPROTO_xxx for IPv4 and IPv6
@@ -119,7 +119,7 @@ type
   TSFTPItems = class(TCollection)
   private
     FOwner: TComponent;
-    FPath: String;
+    FPath: WideString;
     function GetItems(const AIndex: Integer): TSFTPItem;
     procedure SetItems(const AIndex: Integer; const Value: TSFTPItem);
   protected
@@ -131,7 +131,7 @@ type
     procedure ParseEntryBuffers(ABuffer, ALongEntry: PAnsiChar;
       const AAttributes: LIBSSH2_SFTP_ATTRIBUTES; ACodePage: Word = CP_UTF8);
     procedure SortDefault;
-    property Path: String read FPath write FPath;
+    property Path: WideString read FPath write FPath;
     property Items[const AIndex: Integer]: TSFTPItem read GetItems write SetItems; default;
   end;
 
@@ -252,13 +252,13 @@ type
     procedure Put(const ASource: TStream; const ADestFileName: WideString;
       AOverwrite: Boolean = False);
     procedure Rename(const AOldName, ANewName: WideString);
-    procedure MakeSymLink(const AOrigin, ADest: String);
+    procedure MakeSymLink(const AOrigin, ADest: WideString);
     function ResolveSymLink(const AOrigin: WideString; var AAtributes: LIBSSH2_SFTP_ATTRIBUTES;
       ARealPath: Boolean = False): String;
     procedure SetAttributes(const APath: WideString; AAtribs: LIBSSH2_SFTP_ATTRIBUTES);
     procedure SetPermissions(const APath: WideString; APerms: Cardinal); overload;
     procedure SetPermissions(const APath: WideString; const AOctalPerms: String); overload;
-    function ExpandCurrentDirPath: String;
+    function ExpandCurrentDirPath: WideString;
 
     property ReadBufferLen: Cardinal read FReadBufLen write FReadBufLen;
     property WriteBufferLen: Cardinal read FWriteBufLen write FWriteBufLen;
@@ -1433,7 +1433,7 @@ begin
   end;
 end;
 
-function TSFTPClient.ExpandCurrentDirPath: String;
+function TSFTPClient.ExpandCurrentDirPath: WideString;
 const
   BUF_LEN = 4 * 1024;
 var
@@ -1650,7 +1650,7 @@ begin
     RaiseSSHError;
 end;
 
-procedure TSFTPClient.MakeSymLink(const AOrigin, ADest: String);
+procedure TSFTPClient.MakeSymLink(const AOrigin, ADest: WideString);
 begin
   FCanceled := False;
   if libssh2_sftp_symlink(FSFtp, PAnsiChar(MyEncode(AOrigin)), PAnsiChar(MyEncode(ADest))) <> 0 then
