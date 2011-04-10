@@ -26,7 +26,7 @@ type
   TFingerprintEvent = procedure(ASender: TObject; const AState: TFingerprintState;
     var AAction: TConnectHashAction) of object;
   TKeybInteractiveEvent = procedure(ASender: TObject; var Password: String) of object;
-  TTransferProgress = procedure(ASender: TObject; const AFileName: String;
+  TTransferProgress = procedure(ASender: TObject; const AFileName: WideString;
     ATransfered, ATotal: UInt64) of object;
   TContinueEvent = procedure(ASender: TObject; var ACountinue: Boolean) of object;
 
@@ -34,7 +34,8 @@ type
   ESSH2Exception = class(Exception);
 
   PAddrInfo = ^addrinfo;
-  addrinfo = record ai_flags: Integer; // AI_PASSIVE, AI_CANONNAME, AI_NUMERICHOST
+    addrinfo = record
+    ai_flags: Integer; // AI_PASSIVE, AI_CANONNAME, AI_NUMERICHOST
     ai_family: Integer; // PF_xxx
     ai_socktype: Integer; // SOCK_xxx
     ai_protocol: Integer; // 0 or IPPROTO_xxx for IPv4 and IPv6
@@ -171,6 +172,7 @@ type
     FOnAuthFail: TContinueEvent;
     FOnConnect: TNotifyEvent;
     FCodePage: Word;
+    FCompression: Boolean;
     function GetConnected: Boolean;
     procedure SetConnected(const Value: Boolean);
     procedure SetAuthModes(const Value: TAuthModes);
@@ -210,8 +212,9 @@ type
     property HashManager: IHashManager read FHashMgr write FHashMgr;
     property Connected: Boolean read GetConnected write SetConnected;
     property LibraryVersion: String read GetLibString;
+    property Compression: Boolean read FCompression write FCompression;
 
-    property CodePage: Word read FCodePage write FCodepage default CP_UTF8;
+    property CodePage: Word read FCodePage write FCodePage default CP_UTF8;
 
     property OnFingerprint: TFingerprintEvent read FOnFingerprint write FOnFingerprint;
     property OnKeybdInteractive: TKeybInteractiveEvent read FOnKeybInt write FOnKeybInt;
@@ -276,11 +279,11 @@ type
     FOnTProgress: TTransferProgress;
   protected
   public
-      procedure Cancel(ADisconnect: Boolean = True); override;
-      procedure Get(const ASourceFileName: WideString; const ADest: TStream; var AStat: TStructStat);
-      procedure Put(const ASource: TStream; const ADestFileName: WideString;
-        AFileSize: UInt64; ATime, MTime: TDateTime; AMode: Integer = 0);
-      property OnTransferProgress: TTransferProgress read FOnTProgress write FOnTProgress;
+    procedure Cancel(ADisconnect: Boolean = True); override;
+    procedure Get(const ASourceFileName: WideString; const ADest: TStream; var AStat: TStructStat);
+    procedure Put(const ASource: TStream; const ADestFileName: WideString; AFileSize: UInt64;
+      ATime, MTime: TDateTime; AMode: Integer = 0);
+    property OnTransferProgress: TTransferProgress read FOnTProgress write FOnTProgress;
   end;
 
 function ToOctal(X: Cardinal; const Len: Integer = 4): String;
@@ -291,13 +294,13 @@ function DecodeStr(const S: AnsiString; ACodePage: Word = CP_UTF8): WideString;
 implementation
 
 uses
-  DateUtils, Forms;
+  DateUtils, Forms, WideStrUtils;
 
 var
   GSSH2Init: Integer;
 
 function connect2(S: TSocket; name: Pointer; namelen: Integer): Integer; stdcall;
-external 'ws2_32.dll' name 'connect';
+  external 'ws2_32.dll' name 'connect';
 
 function getaddrinfo(pNodeName, pServiceName: PAnsiChar; const pHints: PAddrInfo;
   var ppResult: PAddrInfo): Integer; stdcall; external 'ws2_32.dll' name 'getaddrinfo';
@@ -378,11 +381,11 @@ begin
 
   Result := '';
   Flags := MB_PRECOMPOSED;
-  L := MultiByteToWideChar(ACodePage, Flags, PAnsiChar(@S[1]), - 1, nil, 0);
+  L := MultiByteToWideChar(ACodePage, Flags, PAnsiChar(@S[1]), -1, nil, 0);
   if L > 1 then
   begin
     SetLength(Result, L - 1);
-    MultiByteToWideChar(ACodePage, Flags, PAnsiChar(@S[1]), - 1, PWideChar(@Result[1]), L - 1);
+    MultiByteToWideChar(ACodePage, Flags, PAnsiChar(@S[1]), -1, PWideChar(@Result[1]), L - 1);
   end;
 end;
 
@@ -406,6 +409,8 @@ begin
     Self.FAtime := X.FAtime;
     Self.FMtime := X.FMtime;
     Self.FFileSize := X.FFileSize;
+    Self.FUid := X.FUid;
+    Self.FGid := X.FGid;
   end
   else
     inherited Assign(ASource);
@@ -606,7 +611,7 @@ begin
 
   Item := Add;
   Item.FileName := DecodeStr(ABuffer, ACodePage);
-  if TestBit(AAttributes.flags, LIBSSH2_SFTP_ATTR_PERMISSIONS) then
+  if TestBit(AAttributes.Flags, LIBSSH2_SFTP_ATTR_PERMISSIONS) then
   begin
     case AAttributes.Permissions and LIBSSH2_SFTP_S_IFMT of
       LIBSSH2_SFTP_S_IFDIR:
@@ -628,12 +633,12 @@ begin
           try
             Item.LinkPath := Client.ResolveSymLink(Client.CurrentDirectory + '/' + Item.FFileName,
               LinkAttrs, True);
-            if TestBit(LinkAttrs.flags, LIBSSH2_SFTP_ATTR_PERMISSIONS) and
+            if TestBit(LinkAttrs.Flags, LIBSSH2_SFTP_ATTR_PERMISSIONS) and
               (LinkAttrs.Permissions and LIBSSH2_SFTP_S_IFMT = LIBSSH2_SFTP_S_IFDIR) then
               Item.ItemType := sitSymbolicLinkDir
             else
               Item.ItemType := sitSymbolicLink;
-            if TestBit(LinkAttrs.flags, LIBSSH2_SFTP_ATTR_SIZE) then
+            if TestBit(LinkAttrs.Flags, LIBSSH2_SFTP_ATTR_SIZE) then
               Item.LinkSize := LinkAttrs.FileSize
             else
               Item.LinkSize := 0;
@@ -658,14 +663,14 @@ begin
     Item.Permissions := 0;
   end;
 
-  if TestBit(AAttributes.flags, LIBSSH2_SFTP_ATTR_SIZE) then
+  if TestBit(AAttributes.Flags, LIBSSH2_SFTP_ATTR_SIZE) then
     Item.FileSize := AAttributes.FileSize
   else
     Item.FileSize := 0;
 
   Item.Hidden := ABuffer[0] = '.';
 
-  if TestBit(AAttributes.flags, LIBSSH2_SFTP_ATTR_UIDGID) then
+  if TestBit(AAttributes.Flags, LIBSSH2_SFTP_ATTR_UIDGID) then
   begin
     Item.UID := AAttributes.UID;
     Item.GID := AAttributes.GID;
@@ -680,10 +685,10 @@ begin
     Item.GIDStr := '';
   end;
 
-  if TestBit(AAttributes.flags, LIBSSH2_SFTP_ATTR_ACMODTIME) then
+  if TestBit(AAttributes.Flags, LIBSSH2_SFTP_ATTR_ACMODTIME) then
   begin
-    Item.LastAccessTime := UnixToDateTime(AAttributes.atime);
-    Item.LastModificationTime := UnixToDateTime(AAttributes.mtime);
+    Item.LastAccessTime := UnixToDateTime(AAttributes.ATime);
+    Item.LastModificationTime := UnixToDateTime(AAttributes.MTime);
   end
   else
   begin
@@ -697,9 +702,22 @@ begin
   inherited Items[AIndex] := Value;
 end;
 
+function StrCmpLogicalW(psz1, psz2: PWideChar): integer; stdcall;  external 'shlwapi.dll' name 'StrCmpLogicalW';
+
 procedure TSFTPItems.SortDefault;
 var
   T: TSFTPItem;
+
+  function MyCmpWStr(const W1, W2: WideString): Integer;
+  begin
+    //Result := WideCompareStr(W1, W2) //CompareStringW(LOCALE_INVARIANT, 0, PWideChar(W1), -1, PWideChar(W2), -1);
+    if W1 > W2 then
+      Result := 1
+    else if W1 < W2 then
+      Result := -1
+    else
+      Result := 0;
+  end;
 
   procedure QuickSort(AItems: TSFTPItems; L, R: Integer);
   var
@@ -713,11 +731,11 @@ var
       repeat
         repeat
           Inc(I);
-        until not(WideCompareStr(AItems[I - 1].FFileName, P.FFileName) < 0);
+        until not(MyCmpWStr(AItems[I - 1].FFileName, P.FFileName) < 0);
         Dec(I);
         repeat
           Dec(J);
-        until not(WideCompareStr(P.FFileName, AItems[J + 1].FFileName) < 0);
+        until not(MyCmpWStr(P.FFileName, AItems[J + 1].FFileName) < 0);
         Inc(J);
 
         if I > J then
@@ -726,6 +744,12 @@ var
         T.Assign(AItems[I]);
         AItems[I].Assign(AItems[J]);
         AItems[J].Assign(T);
+
+        if P = AItems[I] then
+          P := AItems[J]
+        else if P = AItems[J] then
+          P := AItems[I];
+
         Inc(I);
         Dec(J);
       until I > J;
@@ -763,11 +787,15 @@ begin
     K := Dirs.Count;
     L := Files.Count;
     T := TSFTPItem.Create(nil);
-    if K > 1 then
-      QuickSort(Dirs, 0, K - 1);
-    if L > 1 then
-      QuickSort(Files, 0, L - 1);
-    T.Free;
+    try
+      if K > 1 then
+        QuickSort(Dirs, 0, K - 1);
+      if L > 1 then
+        QuickSort(Files, 0, L - 1);
+    finally
+      T.Free;
+    end;
+
     for I := 0 to K - 1 do
       Items[I].Assign(Dirs[I]);
 
@@ -966,6 +994,16 @@ begin
     RaiseSSHError;
 
   libssh2_banner_set(FSession, PAnsiChar(MyEncode(FClientBanner)));
+
+  if FCompression then
+  begin
+    if libssh2_session_method_pref(FSession, LIBSSH2_METHOD_COMP_SC, 'zlib, none') <> 0 then
+      OutputDebugStringW(PWChar(WideString('Error setting comp_sc: ' + GetLastSSHError)));
+
+    if libssh2_session_method_pref(FSession, LIBSSH2_METHOD_COMP_CS, 'zlib, none') <> 0 then
+      OutputDebugStringW(PWChar(WideString('Error setting comp_cs: ' + GetLastSSHError)));
+  end;
+
   if libssh2_session_startup(FSession, FSocket) = 0 then
   begin
     if FHashMgr <> nil then
@@ -1148,7 +1186,7 @@ begin
   FSockBufLen := 8 * 1024;
   FSocket := INVALID_SOCKET;
   FCodePage := CP_UTF8;
-
+  FCompression := False;
   if InterlockedIncrement(GSSH2Init) = 1 then
     if libssh2_init(0) <> 0 then
       RaiseSSHError('Error initializing libssh2.');
@@ -1439,7 +1477,6 @@ const
 var
   DirHandle: PLIBSSH2_SFTP_HANDLE;
   Buf: PAnsiChar;
-  Path: String;
 begin
   Result := '';
 
@@ -1448,7 +1485,7 @@ begin
   begin
     GetMem(Buf, BUF_LEN);
     try
-      libssh2_sftp_realpath(FSFtp, PAnsiChar(UTF8Encode(Path)), Buf, BUF_LEN);
+      libssh2_sftp_realpath(FSFtp, nil, Buf, BUF_LEN);
       libssh2_sftp_close(DirHandle);
       Result := MyDecode(Buf);
     finally
@@ -1472,7 +1509,7 @@ begin
   FCanceled := False;
   if libssh2_sftp_stat(FSFtp, PAnsiChar(MyEncode(ASourceFileName)), Attribs) = 0 then
   begin
-    if not TestBit(Attribs.flags, LIBSSH2_SFTP_ATTR_SIZE) then
+    if not TestBit(Attribs.Flags, LIBSSH2_SFTP_ATTR_SIZE) then
       OutputDebugStringW(PWChar('TSFTPClient::Get >> No size attrib:' + ASourceFileName));
 
     FHandle := libssh2_sftp_open(FSFtp, PAnsiChar(MyEncode(ASourceFileName)), LIBSSH2_FXF_READ, 0);
@@ -1519,7 +1556,7 @@ var
   S: String;
   C: Integer;
 begin
-  S := inherited;
+  S := inherited GetLastSSHError(E);
   if FSFtp <> nil then
   begin
     S := 'SFTP: ';
@@ -1621,7 +1658,7 @@ end;
 
 procedure TSFTPClient.MakeDir(const ADirName: WideString; AMode: Integer; ARecurse: Boolean);
 var
-  Dir: String;
+  Dir: WideString;
   Mode: Integer;
 begin
   FCanceled := False;
@@ -1630,10 +1667,10 @@ begin
 
   if ARecurse then
   begin
-    Dir := ExtractFileDir(StringReplace(ADirName, '/', '\', [rfReplaceAll, rfIgnoreCase]));
+    Dir := ExtractFileDir(WideStringReplace(ADirName, '/', '\', [rfReplaceAll, rfIgnoreCase]));
     if (Dir <> '') then
     begin
-      Dir := StringReplace(Dir, '/', '\', [rfReplaceAll, rfIgnoreCase]);
+      Dir := WideStringReplace(Dir, '/', '\', [rfReplaceAll, rfIgnoreCase]);
       if not ChangeDir(Dir) then
         MakeDir(Dir, AMode, ARecurse);
     end;
@@ -1773,7 +1810,7 @@ var
   Attribs: LIBSSH2_SFTP_ATTRIBUTES;
 begin
   FillChar(Attribs, sizeof(Attribs), 0);
-  Attribs.flags := LIBSSH2_SFTP_ATTR_PERMISSIONS;
+  Attribs.Flags := LIBSSH2_SFTP_ATTR_PERMISSIONS;
   Attribs.Permissions := APerms;
   SetAttributes(APath, Attribs);
 end;
@@ -1786,14 +1823,14 @@ begin
   inherited;
 end;
 
-procedure TSCPClient.Get(const ASourceFileName: WideString;
-  const ADest: TStream; var AStat: TStructStat);
+procedure TSCPClient.Get(const ASourceFileName: WideString; const ADest: TStream;
+  var AStat: TStructStat);
 const
   BUF_LEN = 8 * 1024 - 1;
 var
   Channel: PLIBSSH2_CHANNEL;
   N, R, K: Integer;
-  Buf: array[0..BUF_LEN-1] of AnsiChar;
+  Buf: array [0 .. BUF_LEN - 1] of AnsiChar;
 begin
   //
   FCanceled := False;
@@ -1801,7 +1838,8 @@ begin
   if Channel = nil then
     RaiseSSHError;
   try
-    N := 0; K := BUF_LEN;
+    N := 0;
+    K := BUF_LEN;
     while (N < AStat.st_size) and not FCanceled do
     begin
       if AStat.st_size - N < K then
@@ -1823,9 +1861,8 @@ begin
   end;
 end;
 
-procedure TSCPClient.Put(const ASource: TStream;
-  const ADestFileName: WideString; AFileSize: UInt64; ATime, MTime: TDateTime;
-  AMode: Integer);
+procedure TSCPClient.Put(const ASource: TStream; const ADestFileName: WideString;
+  AFileSize: UInt64; ATime, MTime: TDateTime; AMode: Integer);
 const
   BUF_LEN = 8 * 1024 - 1;
 var
@@ -1835,7 +1872,7 @@ var
   N, K, R: Integer;
   Transfered: UInt64;
 begin
- //
+  //
   FCanceled := False;
   if AMode <> 0 then
     Mode := AMode
