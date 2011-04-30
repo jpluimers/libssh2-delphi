@@ -1,5 +1,5 @@
 { **
-  *  Copyright (c) 2010, Zeljko Marjanovic <savethem4ver@gmail.com>
+  *  Copyright (c) 2010, Zeljko Marjanovic <savethem4ever@gmail.com>
   *  This code is licensed under MPL 1.1
   *  For details, see http://www.mozilla.org/MPL/MPL-1.1.html
   * }
@@ -1690,7 +1690,7 @@ end;
 procedure TSFTPClient.MakeSymLink(const AOrigin, ADest: WideString);
 begin
   FCanceled := False;
-  if libssh2_sftp_symlink(FSFtp, PAnsiChar(MyEncode(AOrigin)), PAnsiChar(MyEncode(ADest))) <> 0 then
+  if libssh2_sftp_symlink(FSFtp, PAnsiChar(MyEncode(ADest)), PAnsiChar(MyEncode(AOrigin))) <> 0 then
     RaiseSSHError;
 end;
 
