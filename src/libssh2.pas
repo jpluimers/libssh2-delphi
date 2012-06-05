@@ -583,7 +583,7 @@ function libssh2_session_hostkey(session: PLIBSSH2_SESSION;
 
 function libssh2_session_method_pref(session: PLIBSSH2_SESSION;
                                      method_type: Integer; 
-                                     const prefs: PAnsiChar): Integer; cdecl  ; 
+                                     var prefs: PAnsiChar): Integer; cdecl  ;
 
 function libssh2_session_methods(session: PLIBSSH2_SESSION;
                                  method_type: Integer): PAnsiChar; cdecl  ; 
@@ -894,7 +894,7 @@ function libssh2_scp_send_ex(session: PLIBSSH2_SESSION;
                              atime: LongInt): PLIBSSH2_CHANNEL; cdecl  ;
 
 function libssh2_scp_send64(session: PLIBSSH2_SESSION; const path: PAnsiChar; mode: Integer;
-                   size: Int64; mtime: time_t; atime: time_t): PLIBSSH2_CHANNEL; cdecl ;
+                   size: UInt64; mtime: time_t; atime: time_t): PLIBSSH2_CHANNEL; cdecl ;
 
 function libssh2_scp_send(session: PLIBSSH2_SESSION; const path: PAnsiChar; mode: Integer; size: SIZE_T): PLIBSSH2_CHANNEL; inline;
 
@@ -1383,14 +1383,8 @@ function libssh2_keepalive_send; external libssh2_name;
 function libssh2_trace_sethandler; external libssh2_name;
 
 function libssh2_session_init: PLIBSSH2_SESSION;
-var
- P1: LIBSSH2_ALLOC_FUNC;
- P2: LIBSSH2_REALLOC_FUNC;
- P3: LIBSSH2_FREE_FUNC;
- P4: Pointer;
 begin
-  P1 := nil; P2 := nil; P3 := nil; P4 := nil;
-  Result := libssh2_session_init_ex(P1, P3, P2, P4);
+  Result := libssh2_session_init_ex(nil, nil, nil, nil);
 end;
 
 function libssh2_session_disconnect(session: PLIBSSH2_SESSION; const description: PAnsiChar): Integer;

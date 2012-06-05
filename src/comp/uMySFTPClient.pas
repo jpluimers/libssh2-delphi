@@ -1,3 +1,82 @@
+{$A8,B-,C+,D+,E-,F-,G+,H+,I+,J-,K-,L+,M-,N-,O+,P+,Q-,R-,S-,T-,U-,V+,W-,X+,Y+,Z1}
+{$MINSTACKSIZE $00004000}
+{$MAXSTACKSIZE $00100000}
+{$IMAGEBASE $00400000}
+{$APPTYPE GUI}
+{$WARN SYMBOL_DEPRECATED ON}
+{$WARN SYMBOL_LIBRARY ON}
+{$WARN SYMBOL_PLATFORM ON}
+{$WARN SYMBOL_EXPERIMENTAL ON}
+{$WARN UNIT_LIBRARY ON}
+{$WARN UNIT_PLATFORM ON}
+{$WARN UNIT_DEPRECATED ON}
+{$WARN UNIT_EXPERIMENTAL ON}
+{$WARN HRESULT_COMPAT ON}
+{$WARN HIDING_MEMBER ON}
+{$WARN HIDDEN_VIRTUAL ON}
+{$WARN GARBAGE ON}
+{$WARN BOUNDS_ERROR ON}
+{$WARN ZERO_NIL_COMPAT ON}
+{$WARN STRING_CONST_TRUNCED ON}
+{$WARN FOR_LOOP_VAR_VARPAR ON}
+{$WARN TYPED_CONST_VARPAR ON}
+{$WARN ASG_TO_TYPED_CONST ON}
+{$WARN CASE_LABEL_RANGE ON}
+{$WARN FOR_VARIABLE ON}
+{$WARN CONSTRUCTING_ABSTRACT ON}
+{$WARN COMPARISON_FALSE ON}
+{$WARN COMPARISON_TRUE ON}
+{$WARN COMPARING_SIGNED_UNSIGNED ON}
+{$WARN COMBINING_SIGNED_UNSIGNED ON}
+{$WARN UNSUPPORTED_CONSTRUCT ON}
+{$WARN FILE_OPEN ON}
+{$WARN FILE_OPEN_UNITSRC ON}
+{$WARN BAD_GLOBAL_SYMBOL ON}
+{$WARN DUPLICATE_CTOR_DTOR ON}
+{$WARN INVALID_DIRECTIVE ON}
+{$WARN PACKAGE_NO_LINK ON}
+{$WARN PACKAGED_THREADVAR ON}
+{$WARN IMPLICIT_IMPORT ON}
+{$WARN HPPEMIT_IGNORED ON}
+{$WARN NO_RETVAL ON}
+{$WARN USE_BEFORE_DEF ON}
+{$WARN FOR_LOOP_VAR_UNDEF ON}
+{$WARN UNIT_NAME_MISMATCH ON}
+{$WARN NO_CFG_FILE_FOUND ON}
+{$WARN IMPLICIT_VARIANTS ON}
+{$WARN UNICODE_TO_LOCALE ON}
+{$WARN LOCALE_TO_UNICODE ON}
+{$WARN IMAGEBASE_MULTIPLE ON}
+{$WARN SUSPICIOUS_TYPECAST ON}
+{$WARN PRIVATE_PROPACCESSOR ON}
+{$WARN UNSAFE_TYPE OFF}
+{$WARN UNSAFE_CODE OFF}
+{$WARN UNSAFE_CAST OFF}
+{$WARN OPTION_TRUNCATED ON}
+{$WARN WIDECHAR_REDUCED ON}
+{$WARN DUPLICATES_IGNORED ON}
+{$WARN UNIT_INIT_SEQ ON}
+{$WARN LOCAL_PINVOKE ON}
+{$WARN MESSAGE_DIRECTIVE ON}
+{$WARN TYPEINFO_IMPLICITLY_ADDED ON}
+{$WARN RLINK_WARNING ON}
+{$WARN IMPLICIT_STRING_CAST ON}
+{$WARN IMPLICIT_STRING_CAST_LOSS ON}
+{$WARN EXPLICIT_STRING_CAST OFF}
+{$WARN EXPLICIT_STRING_CAST_LOSS OFF}
+{$WARN CVT_WCHAR_TO_ACHAR ON}
+{$WARN CVT_NARROWING_STRING_LOST ON}
+{$WARN CVT_ACHAR_TO_WCHAR ON}
+{$WARN CVT_WIDENING_STRING_LOST ON}
+{$WARN XML_WHITESPACE_NOT_ALLOWED ON}
+{$WARN XML_UNKNOWN_ENTITY ON}
+{$WARN XML_INVALID_NAME_START ON}
+{$WARN XML_INVALID_NAME ON}
+{$WARN XML_EXPECTED_CHARACTER ON}
+{$WARN XML_CREF_NO_RESOLVE ON}
+{$WARN XML_NO_PARM ON}
+{$WARN XML_NO_MATCHING_PARM ON}
+
 { **
   *  Copyright (c) 2010, Zeljko Marjanovic <savethem4ever@gmail.com>
   *  This code is licensed under MPL 1.1
@@ -18,7 +97,7 @@ const
 type
   TSFTPItemType = (sitUnknown, sitDirectory, sitFile, sitSymbolicLink, sitSymbolicLinkDir,
     sitBlockDev, sitCharDev, sitFIFO, sitSocket);
-  TIPVersion = (IPv4 = AF_INET, IPv6 = AF_INET6);
+  TIPVersion = (IPvUNSPEC = 0, IPv4 = AF_INET, IPv6 = AF_INET6);
   TAuthMode = (amTryAll, amPassword, amPublicKey, amKeyboardInteractive, amPublicKeyViaAgent);
   TAuthModes = set of TAuthMode;
   TFingerprintState = (fsNew, fsChanged);
@@ -708,7 +787,7 @@ procedure TSFTPItems.SortDefault;
 var
   T: TSFTPItem;
 
-  function MyCmpWStr(const W1, W2: WideString): Integer;
+  function MyCmpWStr(const W1, W2: WideString): Integer; inline;
   begin
     //Result := WideCompareStr(W1, W2) //CompareStringW(LOCALE_INVARIANT, 0, PWideChar(W1), -1, PWideChar(W2), -1);
     if W1 > W2 then
@@ -974,6 +1053,7 @@ var
   AuthMode: TAuthModes;
   AuthOK: Boolean;
   B: Boolean;
+  Prefs: PAnsiChar;
 begin
   if Connected then
     Exit;
@@ -997,10 +1077,11 @@ begin
 
   if FCompression then
   begin
-    if libssh2_session_method_pref(FSession, LIBSSH2_METHOD_COMP_SC, 'zlib, none') <> 0 then
+    Prefs := PAnsiChar('zlib, none');
+    if libssh2_session_method_pref(FSession, LIBSSH2_METHOD_COMP_SC, Prefs) <> 0 then
       OutputDebugStringW(PWChar(WideString('Error setting comp_sc: ' + GetLastSSHError)));
 
-    if libssh2_session_method_pref(FSession, LIBSSH2_METHOD_COMP_CS, 'zlib, none') <> 0 then
+    if libssh2_session_method_pref(FSession, LIBSSH2_METHOD_COMP_CS, Prefs) <> 0 then
       OutputDebugStringW(PWChar(WideString('Error setting comp_cs: ' + GetLastSSHError)));
   end;
 
@@ -1121,6 +1202,7 @@ var
   Worker: TWorkThread;
   Data: TConectData;
   Hints: addrinfo;
+  IpFamily: Integer;
   E: TMethod;
 begin
   Result := False;
@@ -1130,8 +1212,14 @@ begin
     Data.ConnectRes := -1;
     Data.S := S;
 
+    IpFamily := Ord(FIPVersion);
+    if IpFamily <> AF_UNSPEC then
+    begin
+      IpFamily := Ord(FIPVersion);
+    end;
+
     FillChar(Hints, sizeof(Hints), 0);
-    Hints.ai_family := AF_UNSPEC; // both ipv4 and ipv6
+    Hints.ai_family := IpFamily;
     Hints.ai_socktype := SOCK_STREAM;
     Hints.ai_protocol := IPPROTO_TCP;
 
@@ -1177,7 +1265,7 @@ begin
   FPort := 22;
   FUserName := '';
   FPassword := '';
-  FIPVersion := IPv4;
+  FIPVersion := IPvUNSPEC;
   FAuthModes := [amTryAll];
   FClientBanner := LIBSSH2_SSH_BANNER;
   FConnected := False;
@@ -1202,7 +1290,7 @@ begin
     RaiseSSHError('Invalid winsock version!');
     Exit;
   end;
-  Result := socket(Ord(FIPVersion), SOCK_STREAM, IPPROTO_TCP);
+  Result := socket(Ord(AF_INET), SOCK_STREAM, IPPROTO_TCP);
   if Result = INVALID_SOCKET then
   begin
     RaiseSSHError(SysErrorMessage(WSAGetLastError));
@@ -1288,8 +1376,9 @@ begin
     Result := Format('KEX: %s, CRYPT: %s, MAC: %s, COMP: %s, LANG: %s',
       [libssh2_session_methods(FSession, LIBSSH2_METHOD_KEX), libssh2_session_methods(FSession,
         LIBSSH2_METHOD_CRYPT_CS), libssh2_session_methods(FSession, LIBSSH2_METHOD_MAC_CS),
-      libssh2_session_methods(FSession, LIBSSH2_METHOD_COMP_CS), libssh2_session_methods(FSession,
-        LIBSSH2_METHOD_LANG_CS)]);
+      libssh2_session_methods(FSession, LIBSSH2_METHOD_COMP_CS) + ' ' +
+      libssh2_session_methods(FSession, LIBSSH2_METHOD_COMP_SC),
+      libssh2_session_methods(FSession, LIBSSH2_METHOD_LANG_CS)]);
 end;
 
 function TSSH2Client.GetSessionPtr: PLIBSSH2_SESSION;
@@ -1618,7 +1707,7 @@ end;
 
 procedure TSFTPClient.List(const AStartPath: WideString);
 const
-  BUF_LEN = 4 * 1024;
+  BUF_LEN = 8 * 1024;
 var
   EntryBuffer: array [0 .. BUF_LEN - 1] of AnsiChar;
   LongEntry: array [0 .. BUF_LEN - 1] of AnsiChar;
