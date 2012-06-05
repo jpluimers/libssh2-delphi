@@ -1,11 +1,6 @@
 program Project1;
 
 uses
-  madExcept,
-  madLinkDisAsm,
-  madListHardware,
-  madListProcesses,
-  madListModules,
   Forms,
   Unit3 in 'Unit3.pas' {Form3},
   libssh2 in '..\libssh2.pas',
