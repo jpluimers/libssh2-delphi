@@ -306,6 +306,7 @@ const
 {+// session.flags bits*/ }
 const
   LIBSSH2_FLAG_SIGPIPE = $00000001;
+  LIBSSH2_FLAG_COMPRESS = $00000002;
 
 type
   PLIBSSH2_POLLFD = ^_LIBSSH2_POLLFD;
@@ -583,7 +584,7 @@ function libssh2_session_hostkey(session: PLIBSSH2_SESSION;
 
 function libssh2_session_method_pref(session: PLIBSSH2_SESSION;
                                      method_type: Integer; 
-                                     var prefs: PAnsiChar): Integer; cdecl  ;
+                                     const prefs: PAnsiChar): Integer; cdecl  ;
 
 function libssh2_session_methods(session: PLIBSSH2_SESSION;
                                  method_type: Integer): PAnsiChar; cdecl  ; 

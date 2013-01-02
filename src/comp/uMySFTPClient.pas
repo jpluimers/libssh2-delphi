@@ -1053,7 +1053,7 @@ var
   AuthMode: TAuthModes;
   AuthOK: Boolean;
   B: Boolean;
-  Prefs: PAnsiChar;
+  Prefs: AnsiString;
 begin
   if Connected then
     Exit;
@@ -1077,12 +1077,16 @@ begin
 
   if FCompression then
   begin
-    Prefs := PAnsiChar('zlib, none');
-    if libssh2_session_method_pref(FSession, LIBSSH2_METHOD_COMP_SC, Prefs) <> 0 then
+    libssh2_session_flag(FSession, LIBSSH2_FLAG_COMPRESS, 1);
+
+    Prefs := 'zlib,none';
+
+    if libssh2_session_method_pref(FSession, LIBSSH2_METHOD_COMP_CS, PAnsiChar(AnsiString(Prefs))) <> 0 then
+         OutputDebugStringW(PWChar(WideString('Error setting comp_cs: ' + GetLastSSHError)));
+
+    if libssh2_session_method_pref(FSession, LIBSSH2_METHOD_COMP_SC, PAnsiChar(AnsiString(Prefs))) <> 0 then
       OutputDebugStringW(PWChar(WideString('Error setting comp_sc: ' + GetLastSSHError)));
 
-    if libssh2_session_method_pref(FSession, LIBSSH2_METHOD_COMP_CS, Prefs) <> 0 then
-      OutputDebugStringW(PWChar(WideString('Error setting comp_cs: ' + GetLastSSHError)));
   end;
 
   if libssh2_session_startup(FSession, FSocket) = 0 then
@@ -1117,6 +1121,7 @@ begin
 
     libssh2_session_set_blocking(FSession, 1);
     libssh2_keepalive_config(FSession, Integer(FKeepAlive), 10);
+
     UserAuthList := libssh2_userauth_list(FSession, PAnsiChar(AnsiString(FUserName)),
       Length(AnsiString(FUserName)));
     if UserAuthList = nil then
@@ -1523,8 +1528,8 @@ begin
   FItems := TSFTPItems.Create(Self);
   FItems.Path := '';
   FLastDirChangedOK := False;
-  FReadBufLen := 16 * 1024;
-  FWriteBufLen := 8 * 1024 - 1;
+  FReadBufLen := 32 * 1024;
+  FWriteBufLen := 32 * 1024 - 1;
 end;
 
 procedure TSFTPClient.DeleteDir(const ADirName: WideString);
@@ -1645,12 +1650,19 @@ var
   S: String;
   C: Integer;
 begin
-  S := inherited GetLastSSHError(E);
+  S := '';
   if FSFtp <> nil then
   begin
     S := 'SFTP: ';
     if E = 0 then
-      C := libssh2_sftp_last_error(FSFtp)
+    begin
+      C := libssh2_sftp_last_error(FSFtp);
+      if C = 0 then
+      begin
+        Result := SysErrorMessage(WSAGetLastError);
+        Exit;
+      end;
+    end
     else
       C := E;
     case C of
@@ -1699,15 +1711,18 @@ begin
       LIBSSH2_FX_LINK_LOOP:
         S := S + 'Link loop'
       else
-        S := S + 'Unknown error'
+        S := S + 'Unknown error';
     end;
-  end;
+  end
+  else
+    S := inherited;
+
   Result := S;
 end;
 
 procedure TSFTPClient.List(const AStartPath: WideString);
 const
-  BUF_LEN = 8 * 1024;
+  BUF_LEN = 4 * 1024;
 var
   EntryBuffer: array [0 .. BUF_LEN - 1] of AnsiChar;
   LongEntry: array [0 .. BUF_LEN - 1] of AnsiChar;
@@ -1915,7 +1930,7 @@ end;
 procedure TSCPClient.Get(const ASourceFileName: WideString; const ADest: TStream;
   var AStat: TStructStat);
 const
-  BUF_LEN = 8 * 1024 - 1;
+  BUF_LEN = 24 * 1024 - 1;
 var
   Channel: PLIBSSH2_CHANNEL;
   N, R, K: Integer;
