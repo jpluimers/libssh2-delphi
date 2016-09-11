@@ -5,7 +5,7 @@ unit libssh2_sftp;
 interface
 uses
 {$IFDEF WIN32}
-  Windows,
+  Winapi.Windows,
 {$ELSE}
   Wintypes, WinProcs,
 {$ENDIF}

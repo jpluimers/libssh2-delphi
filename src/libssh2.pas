@@ -5,7 +5,7 @@ unit libssh2;
 interface
 uses
 {$IFDEF WIN32}
-  Windows;
+  Winapi.Windows;
 {$ELSE}
   Wintypes, WinProcs;
 {$ENDIF}
@@ -1395,10 +1395,10 @@ end;
 
 function libssh2_userauth_password(session: PLIBSSH2_SESSION; const username: PAnsiChar; const password: PAnsiChar): Integer;
 var
- P: LIBSSH2_PASSWD_CHANGEREQ_FUNC;
+  P: LIBSSH2_PASSWD_CHANGEREQ_FUNC;
 begin
- P := nil;
- Result := libssh2_userauth_password_ex(session, username, Length(username), password, Length(password), P)
+  P := nil;
+  Result := libssh2_userauth_password_ex(session, username, Length(username), password, Length(password), P)
 end;
 
 function libssh2_userauth_publickey_fromfile(session: PLIBSSH2_SESSION; const username: PAnsiChar;
@@ -1410,7 +1410,7 @@ end;
 function libssh2_userauth_hostbased_fromfile(session: PLIBSSH2_SESSION; const username: PAnsiChar; const publickey: PAnsiChar;
     const privatekey: PAnsiChar; const passphrase: PAnsiChar; const hostname: PAnsiChar): Integer;
 begin
-  Result := libssh2_userauth_hostbased_fromfile_ex(session, username, Length(username), publickey, privatekey, passphrase, hostname, Length(hostname), username, Length(username));  
+  Result := libssh2_userauth_hostbased_fromfile_ex(session, username, Length(username), publickey, privatekey, passphrase, hostname, Length(hostname), username, Length(username));
 end;
 
 function libssh2_userauth_keyboard_interactive(session: PLIBSSH2_SESSION; const username: PAnsiChar;  response_callback: LIBSSH2_USERAUTH_KBDINT_RESPONSE_FUNC): Integer;
@@ -1419,8 +1419,10 @@ begin
 end;
 
 function libssh2_channel_open_session(session: PLIBSSH2_SESSION): PLIBSSH2_CHANNEL;
+const
+  SSession = 'session';
 begin
-  Result := libssh2_channel_open_ex(session, 'session', Length('session') - 1, LIBSSH2_CHANNEL_WINDOW_DEFAULT, LIBSSH2_CHANNEL_PACKET_DEFAULT, nil, 0); 
+  Result := libssh2_channel_open_ex(session, SSession, Length(SSession) - 1, LIBSSH2_CHANNEL_WINDOW_DEFAULT, LIBSSH2_CHANNEL_PACKET_DEFAULT, nil, 0);
 end;
 
 function libssh2_channel_direct_tcpip(session: PLIBSSH2_SESSION; const host: PAnsiChar; port: Integer): PLIBSSH2_CHANNEL;

@@ -1,4 +1,4 @@
-object FrmProgress: TFrmProgress
+object ProgressForm: TProgressForm
   Left = 0
   Top = 0
   BorderStyle = bsDialog
@@ -15,28 +15,29 @@ object FrmProgress: TFrmProgress
   Position = poOwnerFormCenter
   PixelsPerInch = 96
   TextHeight = 13
-  object Label1: TLabel
+  object ProgressLabel: TLabel
     Left = 8
     Top = 8
     Width = 8
     Height = 13
     Caption = '::'
   end
-  object ProgressBar1: TProgressBar
+  object ProgressBar: TProgressBar
     Left = 8
     Top = 24
     Width = 311
     Height = 17
     TabOrder = 0
   end
-  object Button1: TButton
+  object CancelButton: TButton
     Left = 244
     Top = 47
     Width = 75
     Height = 23
-    Caption = 'Cancel'
+    Cancel = True
+    Caption = '&Cancel'
     Default = True
     TabOrder = 1
-    OnClick = Button1Click
+    OnClick = CancelButtonClick
   end
 end

@@ -1,6 +1,7 @@
-object Form3: TForm3
+object MainForm: TMainForm
   Left = 0
   Top = 0
+  ActiveControl = edHost
   Caption = 'SFTP client demo'
   ClientHeight = 403
   ClientWidth = 708
@@ -36,9 +37,9 @@ object Form3: TForm3
     Width = 75
     Height = 23
     Anchors = [akLeft, akBottom]
-    Caption = 'Get file'
+    Caption = 'G&et file'
     Enabled = False
-    TabOrder = 0
+    TabOrder = 16
     OnClick = btnGetClick
   end
   object btnPut: TButton
@@ -47,12 +48,12 @@ object Form3: TForm3
     Width = 75
     Height = 23
     Anchors = [akLeft, akBottom]
-    Caption = 'Put file'
+    Caption = 'Put &file'
     Enabled = False
-    TabOrder = 1
+    TabOrder = 17
     OnClick = btnPutClick
   end
-  object ListView1: TListView
+  object RemoteFilesListView: TListView
     Left = 8
     Top = 136
     Width = 692
@@ -87,11 +88,12 @@ object Form3: TForm3
         Width = 120
       end>
     GridLines = True
+    Items.ItemData = {}
     ReadOnly = True
     RowSelect = True
-    TabOrder = 2
+    TabOrder = 15
     ViewStyle = vsReport
-    OnDblClick = ListView1DblClick
+    OnDblClick = RemoteFilesListViewDblClick
   end
   object edHost: TLabeledEdit
     Left = 8
@@ -100,8 +102,8 @@ object Form3: TForm3
     Height = 21
     EditLabel.Width = 26
     EditLabel.Height = 13
-    EditLabel.Caption = 'Host:'
-    TabOrder = 3
+    EditLabel.Caption = '&Host:'
+    TabOrder = 1
     Text = 'bbox.mshome.net'
   end
   object edPort: TLabeledEdit
@@ -111,8 +113,8 @@ object Form3: TForm3
     Height = 21
     EditLabel.Width = 24
     EditLabel.Height = 13
-    EditLabel.Caption = 'Port:'
-    TabOrder = 4
+    EditLabel.Caption = '&Port:'
+    TabOrder = 2
     Text = '22'
   end
   object rbIP4: TRadioButton
@@ -120,9 +122,9 @@ object Form3: TForm3
     Top = 51
     Width = 49
     Height = 17
-    Caption = 'IPv4'
+    Caption = 'IPv&4'
     Checked = True
-    TabOrder = 5
+    TabOrder = 10
     TabStop = True
   end
   object rbIP6: TRadioButton
@@ -130,22 +132,22 @@ object Form3: TForm3
     Top = 51
     Width = 50
     Height = 17
-    Caption = 'IPv6'
-    TabOrder = 6
+    Caption = 'IPv&6'
+    TabOrder = 11
   end
   object GroupBox1: TGroupBox
     Left = 542
     Top = 8
     Width = 158
     Height = 109
-    Caption = 'Auth mode'
-    TabOrder = 7
+    Caption = '&Auth mode'
+    TabOrder = 0
     object cbTryAll: TCheckBox
       Left = 9
       Top = 16
       Width = 97
       Height = 17
-      Caption = 'Try all'
+      Caption = '&Try all'
       Checked = True
       State = cbChecked
       TabOrder = 0
@@ -156,7 +158,7 @@ object Form3: TForm3
       Top = 34
       Width = 97
       Height = 17
-      Caption = 'Password'
+      Caption = 'Pass&word'
       Enabled = False
       TabOrder = 1
     end
@@ -165,7 +167,7 @@ object Form3: TForm3
       Top = 50
       Width = 105
       Height = 17
-      Caption = 'Keybd interactive'
+      Caption = 'Ke&ybd interactive'
       Enabled = False
       TabOrder = 2
     end
@@ -174,7 +176,7 @@ object Form3: TForm3
       Top = 67
       Width = 97
       Height = 17
-      Caption = 'Public key'
+      Caption = 'P&ublic key'
       Enabled = False
       TabOrder = 3
     end
@@ -183,7 +185,7 @@ object Form3: TForm3
       Top = 84
       Width = 114
       Height = 17
-      Caption = 'Public key via agent'
+      Caption = 'Public key &via agent'
       Enabled = False
       TabOrder = 4
     end
@@ -193,9 +195,9 @@ object Form3: TForm3
     Top = 74
     Width = 75
     Height = 23
-    Caption = 'Connect'
+    Caption = '&Connect'
     Default = True
-    TabOrder = 8
+    TabOrder = 13
     OnClick = btnConnectClick
   end
   object btnDisconnect: TButton
@@ -203,9 +205,9 @@ object Form3: TForm3
     Top = 74
     Width = 75
     Height = 23
-    Caption = 'Disconnect'
+    Caption = '&Disconnect'
     Enabled = False
-    TabOrder = 9
+    TabOrder = 14
     OnClick = btnDisconnectClick
   end
   object edUser: TLabeledEdit
@@ -215,8 +217,8 @@ object Form3: TForm3
     Height = 21
     EditLabel.Width = 52
     EditLabel.Height = 13
-    EditLabel.Caption = 'Username:'
-    TabOrder = 10
+    EditLabel.Caption = 'U&sername:'
+    TabOrder = 3
     Text = 'rain'
   end
   object edPass: TLabeledEdit
@@ -226,7 +228,7 @@ object Form3: TForm3
     Height = 21
     EditLabel.Width = 50
     EditLabel.Height = 13
-    EditLabel.Caption = 'Password:'
+    EditLabel.Caption = 'Passw&ord:'
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clWindowText
     Font.Height = -11
@@ -234,14 +236,14 @@ object Form3: TForm3
     Font.Style = [fsBold]
     ParentFont = False
     PasswordChar = #8226
-    TabOrder = 11
+    TabOrder = 4
   end
   object cbKeepAlive: TCheckBox
     Left = 119
     Top = 51
     Width = 65
     Height = 17
-    Caption = 'Keepalive'
+    Caption = '&Keepalive'
     Checked = True
     State = cbChecked
     TabOrder = 12
@@ -252,9 +254,9 @@ object Form3: TForm3
     Width = 75
     Height = 23
     Anchors = [akLeft, akBottom]
-    Caption = 'Delete'
+    Caption = 'De&lete'
     Enabled = False
-    TabOrder = 13
+    TabOrder = 18
     OnClick = btnDeleteClick
   end
   object btnRename: TButton
@@ -263,9 +265,9 @@ object Form3: TForm3
     Width = 75
     Height = 23
     Anchors = [akLeft, akBottom]
-    Caption = 'Rename'
+    Caption = 'Rena&me'
     Enabled = False
-    TabOrder = 14
+    TabOrder = 19
     OnClick = btnRenameClick
   end
   object btnMkSymlink: TButton
@@ -276,7 +278,7 @@ object Form3: TForm3
     Anchors = [akLeft, akBottom]
     Caption = 'Make symlink'
     Enabled = False
-    TabOrder = 15
+    TabOrder = 20
     OnClick = btnMkSymlinkClick
   end
   object btnResSymlink: TButton
@@ -287,7 +289,7 @@ object Form3: TForm3
     Anchors = [akLeft, akBottom]
     Caption = 'Resolve symlink'
     Enabled = False
-    TabOrder = 16
+    TabOrder = 21
     OnClick = btnResSymlinkClick
   end
   object btnMkDir: TButton
@@ -298,7 +300,7 @@ object Form3: TForm3
     Anchors = [akLeft, akBottom]
     Caption = 'Make directory'
     Enabled = False
-    TabOrder = 17
+    TabOrder = 22
     OnClick = btnMkDirClick
   end
   object StatusBar1: TStatusBar
@@ -322,7 +324,7 @@ object Form3: TForm3
     EditLabel.Width = 76
     EditLabel.Height = 13
     EditLabel.Caption = 'Public key path:'
-    TabOrder = 19
+    TabOrder = 5
   end
   object edPrivkey: TLabeledEdit
     Left = 366
@@ -332,7 +334,7 @@ object Form3: TForm3
     EditLabel.Width = 83
     EditLabel.Height = 13
     EditLabel.Caption = 'Private key path:'
-    TabOrder = 20
+    TabOrder = 7
   end
   object edPrivkpass: TLabeledEdit
     Left = 366
@@ -349,7 +351,7 @@ object Form3: TForm3
     Font.Style = [fsBold]
     ParentFont = False
     PasswordChar = #8226
-    TabOrder = 21
+    TabOrder = 9
   end
   object btnSelPkey: TButton
     Left = 507
@@ -357,7 +359,7 @@ object Form3: TForm3
     Width = 25
     Height = 21
     Caption = '...'
-    TabOrder = 22
+    TabOrder = 6
     OnClick = btnSelPkeyClick
   end
   object btnSelPrivkey: TButton
@@ -366,7 +368,7 @@ object Form3: TForm3
     Width = 25
     Height = 21
     Caption = '...'
-    TabOrder = 23
+    TabOrder = 8
     OnClick = btnSelPrivkeyClick
   end
   object btnSetPerms: TButton
@@ -377,6 +379,6 @@ object Form3: TForm3
     Anchors = [akLeft, akBottom]
     Caption = 'Set perms'
     Enabled = False
-    TabOrder = 24
+    TabOrder = 23
   end
 end
