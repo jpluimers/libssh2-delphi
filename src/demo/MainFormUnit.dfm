@@ -88,7 +88,6 @@ object MainForm: TMainForm
         Width = 120
       end>
     GridLines = True
-    Items.ItemData = {}
     ReadOnly = True
     RowSelect = True
     TabOrder = 15
