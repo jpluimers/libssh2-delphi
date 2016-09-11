@@ -64,10 +64,10 @@ type
     FProgressForm: TProgressForm;
     procedure FillList;
     function GetProgressForm: TProgressForm;
-    procedure OnProgress(ASender: TObject; const AFileName: WideString; ATransfered, ATotal: UInt64);
-    procedure OnCantChangeStartDir(ASender: TObject; var Continue: Boolean);
-    procedure OnAuthFailed(ASender: TObject; var Continue: Boolean);
-    procedure OnKeybdInteractive(ASender: TObject; var Password: string);
+    procedure OnProgress(const ASender: TObject; const AFileName: WideString; const ATransfered, ATotal: UInt64);
+    procedure OnCantChangeStartDir(const ASender: TObject; var Continue: Boolean);
+    procedure OnAuthFailed(const ASender: TObject; var Continue: Boolean);
+    function OnKeybdInteractive(const ASender: TObject; var Password: string): Boolean;
     procedure ReflectSftpClientConnectedState();
     procedure SFTPClientList(const AStartPath: WideString = '');
     property ProgressForm: TProgressForm read GetProgressForm;
@@ -501,24 +501,23 @@ begin
   end;
 end;
 
-procedure TMainForm.OnAuthFailed(ASender: TObject; var Continue: Boolean);
+procedure TMainForm.OnAuthFailed(const ASender: TObject; var Continue: Boolean);
 begin
   Continue := MessageDlg('Auth failed. Try again?', mtConfirmation, mbYesNo, 0) = mrYes;
 end;
 
-procedure TMainForm.OnCantChangeStartDir(ASender: TObject; var Continue:
-    Boolean);
+procedure TMainForm.OnCantChangeStartDir(const ASender: TObject; var Continue: Boolean);
 begin
   Continue := MessageDlg('Could not change to start dir. Continue?', mtConfirmation, mbYesNo, 0) = mrYes;
 end;
 
-procedure TMainForm.OnKeybdInteractive(ASender: TObject; var Password: string);
+function TMainForm.OnKeybdInteractive(const ASender: TObject; var Password: string): Boolean;
 begin
   // The #8 forces GetPasswordChar inside InputQuery to ensure it's a password prompt.
-  InputQuery('Enter password for kybdinteractive', #8'Password', Password);
+  Result := InputQuery('Enter password for kybdinteractive', #8'Password', Password);
 end;
 
-procedure TMainForm.OnProgress(ASender: TObject; const AFileName: WideString; ATransfered, ATotal: UInt64);
+procedure TMainForm.OnProgress(const ASender: TObject; const AFileName: WideString; const ATransfered, ATotal: UInt64);
 begin
   if Assigned(FProgressForm) then
   begin
