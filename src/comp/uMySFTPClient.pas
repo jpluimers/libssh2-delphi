@@ -88,7 +88,12 @@ unit uMySFTPClient;
 interface
 
 uses
-  Windows, Classes, SysUtils, WinSock, libssh2, libssh2_sftp;
+  Winapi.Windows,
+  System.Classes,
+  System.SysUtils,
+  Winapi.WinSock,
+  libssh2,
+  libssh2_sftp;
 
 const
   AF_INET6 = 32;
@@ -102,12 +107,10 @@ type
   TAuthModes = set of TAuthMode;
   TFingerprintState = (fsNew, fsChanged);
   TConnectHashAction = (chaCancel, chaIgnore, chaSave);
-  TFingerprintEvent = procedure(ASender: TObject; const AState: TFingerprintState;
-    var AAction: TConnectHashAction) of object;
-  TKeybInteractiveEvent = procedure(ASender: TObject; var Password: String) of object;
-  TTransferProgress = procedure(ASender: TObject; const AFileName: WideString;
-    ATransfered, ATotal: UInt64) of object;
-  TContinueEvent = procedure(ASender: TObject; var ACountinue: Boolean) of object;
+  TFingerprintEvent = procedure(const ASender: TObject; const AState: TFingerprintState; var AAction: TConnectHashAction) of object;
+  TKeybInteractiveEvent = function(const ASender: TObject; var Password: string): Boolean of object;
+  TTransferProgress = procedure(const ASender: TObject; const AFileName: WideString; const ATransfered, ATotal: UInt64) of object;
+  TContinueEvent = procedure(const ASender: TObject; var ACountinue: Boolean) of object;
 
   EWorkThreadException = class(Exception);
   ESSH2Exception = class(Exception);
@@ -128,7 +131,7 @@ type
   PStructStat = ^TStructStat;
 
   TWorkThread = class(TThread)
-  private
+  strict private
     FInterval: Cardinal;
     FNEvent: TNotifyEvent;
     FSender: TObject;
@@ -138,7 +141,7 @@ type
     FSyncExecute: Boolean;
     FEnabled: Boolean;
     FData: Pointer;
-  protected
+  strict protected
     procedure Execute; override;
     procedure Trigger;
   public
@@ -155,14 +158,13 @@ type
   end;
 
   TSFTPStatData = class(TCollectionItem)
-  private
+  strict private
     FFileSize: UInt64;
     FUid: UInt;
     FGid: UInt;
     FPerms: Cardinal;
     FAtime: TDateTime;
     FMtime: TDateTime;
-  protected
   published
     property FileSize: UInt64 read FFileSize write FFileSize;
     property UID: UInt read FUid write FUid;
@@ -173,7 +175,7 @@ type
   end;
 
   TSFTPItem = class(TSFTPStatData)
-  private
+  strict private
     FFileName: WideString;
     FLinkPath: WideString;
     FItemType: TSFTPItemType;
@@ -181,9 +183,8 @@ type
     FHidden: Boolean;
     FGIDStr: WideString;
     FUIDStr: WideString;
-    function GetPermsOct: String;
-    procedure SetPermsOct(const Value: String);
-  protected
+    function GetPermsOct: string;
+    procedure SetPermsOct(const Value: string);
   published
     procedure Assign(ASource: TPersistent); override;
     property FileName: WideString read FFileName write FFileName;
@@ -192,20 +193,20 @@ type
     property Hidden: Boolean read FHidden write FHidden;
     property UIDStr: WideString read FUIDStr write FUIDStr;
     property GIDStr: WideString read FGIDStr write FGIDStr;
-    property PermsOctal: String read GetPermsOct write SetPermsOct;
+    property PermsOctal: string read GetPermsOct write SetPermsOct;
     property ItemType: TSFTPItemType read FItemType write FItemType;
   end;
 
   TSFTPItems = class(TCollection)
-  private
+  strict private
     FOwner: TComponent;
     FPath: WideString;
     function GetItems(const AIndex: Integer): TSFTPItem;
     procedure SetItems(const AIndex: Integer; const Value: TSFTPItem);
-  protected
+  strict protected
     function GetOwner: TPersistent; override;
   public
-    constructor Create(AOwner: TComponent);
+    constructor Create(const AOwner: TComponent);
     function Add: TSFTPItem;
     function IndexOf(const AItem: TSFTPItem): Integer;
     procedure ParseEntryBuffers(ABuffer, ALongEntry: PAnsiChar;
@@ -219,28 +220,28 @@ type
 
   IHashManager = interface
     ['{296711A3-DE46-4674-9160-382A6F7D87A0}']
-    function GetFingerprint(const AHost: String; APort: Word): Pointer; overload;
-    function StoreFingerprint(const AHost: String; APort: Word; const AHash: Pointer): Boolean;
-    function RemoveFingerprint(const AHost: String; APort: Word; const AHash: Pointer): Boolean;
+    function GetFingerprint(const AHost: string; APort: Word): Pointer; overload;
+    function StoreFingerprint(const AHost: string; APort: Word; const AHash: Pointer): Boolean;
+    function RemoveFingerprint(const AHost: string; APort: Word; const AHash: Pointer): Boolean;
     function CompareFingerprints(const F1, F2: Pointer): Boolean;
     function GetHashMode: THashMode;
   end;
 
   TSSH2Client = class(TComponent)
-  private
-    FPrivKeyPass: String;
+  strict private
+    FPrivKeyPass: string;
     FPrivKeyPath: TFileName;
     FAuthModes: TAuthModes;
     FPubKeyPath: TFileName;
     FPort: Word;
-    FPassword: String;
-    FHost: String;
-    FUserName: String;
+    FPassword: string;
+    FHost: string;
+    FUserName: string;
     FIPVersion: TIPVersion;
-    FClientBanner: String;
+    FClientBanner: string;
     FConnected: Boolean;
     FCanceled: Boolean;
-    FLastErrStr: String;
+    FLastErrStr: string;
     FKeepAlive: Boolean;
     FSockBufLen: Integer;
     FHashMgr: IHashManager;
@@ -256,14 +257,14 @@ type
     procedure SetConnected(const Value: Boolean);
     procedure SetAuthModes(const Value: TAuthModes);
     procedure DoOnFingerprint(const AState: TFingerprintState; var AAction: TConnectHashAction);
-    function GetVersion: String;
-    function GetLibString: String;
-  protected
+    function GetVersion: string;
+    function GetLibString: string;
+  strict protected
     function GetSessionPtr: PLIBSSH2_SESSION;
     function GetSocketHandle: Integer;
     function CreateSocket: Integer; virtual;
     function ConnectSocket(var S: Integer): Boolean; virtual;
-    procedure RaiseSSHError(const AMsg: String = ''; E: Integer = 0); virtual;
+    procedure RaiseSSHError(const AMsg: string = ''; E: Integer = 0); virtual;
     function MyEncode(const WS: WideString): AnsiString; virtual;
     function MyDecode(const S: AnsiString): WideString; virtual;
   public
@@ -272,25 +273,25 @@ type
 
     procedure Connect; virtual;
     procedure Disconnect; virtual;
-    function GetLastSSHError(E: Integer = 0): String; virtual;
-    procedure Cancel(ADisconnect: Boolean = True); virtual;
-    function GetSessionMethodsStr: String;
+    function GetLastSSHError(const E: Integer = 0): string; virtual;
+    procedure Cancel(const ADisconnect: Boolean = True); virtual;
+    function GetSessionMethodsStr: string;
 
-    property Host: String read FHost write FHost;
+    property Host: string read FHost write FHost;
     property Port: Word read FPort write FPort default 22;
     property IPVersion: TIPVersion read FIPVersion write FIPVersion;
     property KeepAlive: Boolean read FKeepAlive write FKeepAlive;
     property SockSndRcvBufLen: Integer read FSockBufLen write FSockBufLen;
     property AuthModes: TAuthModes read FAuthModes write SetAuthModes default[amTryAll];
-    property UserName: String read FUserName write FUserName;
-    property Password: String read FPassword write FPassword;
+    property UserName: string read FUserName write FUserName;
+    property Password: string read FPassword write FPassword;
     property PublicKeyPath: TFileName read FPubKeyPath write FPubKeyPath;
     property PrivateKeyPath: TFileName read FPrivKeyPath write FPrivKeyPath;
-    property PrivKeyPassPhrase: String read FPrivKeyPass write FPrivKeyPass;
-    property ClientBanner: String read FClientBanner write FClientBanner;
+    property PrivKeyPassPhrase: string read FPrivKeyPass write FPrivKeyPass;
+    property ClientBanner: string read FClientBanner write FClientBanner;
     property HashManager: IHashManager read FHashMgr write FHashMgr;
     property Connected: Boolean read GetConnected write SetConnected;
-    property LibraryVersion: String read GetLibString;
+    property LibraryVersion: string read GetLibString;
     property Compression: Boolean read FCompression write FCompression;
 
     property CodePage: Word read FCodePage write FCodePage default CP_UTF8;
@@ -299,12 +300,12 @@ type
     property OnKeybdInteractive: TKeybInteractiveEvent read FOnKeybInt write FOnKeybInt;
     property OnConnected: TNotifyEvent read FOnConnect write FOnConnect;
     property OnAuthFailed: TContinueEvent read FOnAuthFail write FOnAuthFail;
-    property Version: String read GetVersion;
+    property Version: string read GetVersion;
   end;
 
   TSFTPClient = class(TSSH2Client)
-  private
-    FCurrentDir: String;
+  strict private
+    FCurrentDir: string;
     FItems: TSFTPItems;
     FCanceled: Boolean;
     FSFtp: PLIBSSH2_SFTP;
@@ -313,9 +314,9 @@ type
     FOnNoStartDir: TContinueEvent;
     FReadBufLen: Cardinal;
     FWriteBufLen: Cardinal;
-    procedure SetCurrentDir(const Value: String);
-  protected
-    procedure RaiseSSHError(const AMsg: String = ''; E: Integer = 0); override;
+    procedure SetCurrentDir(const Value: string);
+  strict protected
+    procedure RaiseSSHError(const AMsg: string = ''; E: Integer = 0); override;
     function ChangeDir(const APath: WideString): Boolean;
   public
     constructor Create(AOwner: TComponent); override;
@@ -323,57 +324,56 @@ type
 
     procedure Connect(const ARemoteDir: WideString = '.'); reintroduce;
     procedure Disconnect; override;
-    function GetLastSSHError(E: Integer = 0): String; override;
-    procedure Cancel(ADisconnect: Boolean = True); override;
+    function GetLastSSHError(const E: Integer = 0): string; override;
+    procedure Cancel(const ADisconnect: Boolean = True); override;
 
     procedure List(const AStartPath: WideString = '');
     procedure DeleteFile(const AFileName: WideString);
     procedure DeleteDir(const ADirName: WideString);
     procedure MakeDir(const ADirName: WideString; AMode: Integer = 0; ARecurse: Boolean = False);
     procedure Get(const ASourceFileName: WideString; const ADest: TStream; AResume: Boolean);
-    procedure Put(const ASource: TStream; const ADestFileName: WideString;
-      AOverwrite: Boolean = False);
+    procedure Put(const ASource: TStream; const ADestFileName: WideString; const AOverwrite: Boolean = False);
     procedure Rename(const AOldName, ANewName: WideString);
     procedure MakeSymLink(const AOrigin, ADest: WideString);
-    function ResolveSymLink(const AOrigin: WideString; var AAtributes: LIBSSH2_SFTP_ATTRIBUTES;
-      ARealPath: Boolean = False): String;
-    procedure SetAttributes(const APath: WideString; AAtribs: LIBSSH2_SFTP_ATTRIBUTES);
-    procedure SetPermissions(const APath: WideString; APerms: Cardinal); overload;
-    procedure SetPermissions(const APath: WideString; const AOctalPerms: String); overload;
+    function ResolveSymLink(const AOrigin: WideString; var AAtributes: LIBSSH2_SFTP_ATTRIBUTES; const ARealPath: Boolean = False): string;
+    procedure SetAttributes(const APath: WideString; const AAtribs: LIBSSH2_SFTP_ATTRIBUTES);
+    procedure SetPermissions(const APath: WideString; const APerms: Cardinal); overload;
+    procedure SetPermissions(const APath: WideString; const AOctalPerms: string); overload;
     function ExpandCurrentDirPath: WideString;
 
     property ReadBufferLen: Cardinal read FReadBufLen write FReadBufLen;
     property WriteBufferLen: Cardinal read FWriteBufLen write FWriteBufLen;
 
     property DirectoryItems: TSFTPItems read FItems;
-    property CurrentDirectory: String read FCurrentDir write SetCurrentDir;
+    property CurrentDirectory: string read FCurrentDir write SetCurrentDir;
 
     property OnCantChangeStartDir: TContinueEvent read FOnNoStartDir write FOnNoStartDir;
     property OnTransferProgress: TTransferProgress read FOnTProgress write FOnTProgress;
   end;
 
   TSCPClient = class(TSSH2Client)
-  private
+  strict private
     FCanceled: Boolean;
     FOnTProgress: TTransferProgress;
-  protected
   public
-    procedure Cancel(ADisconnect: Boolean = True); override;
+    procedure Cancel(const ADisconnect: Boolean = True); override;
     procedure Get(const ASourceFileName: WideString; const ADest: TStream; var AStat: TStructStat);
     procedure Put(const ASource: TStream; const ADestFileName: WideString; AFileSize: UInt64;
       ATime, MTime: TDateTime; AMode: Integer = 0);
     property OnTransferProgress: TTransferProgress read FOnTProgress write FOnTProgress;
   end;
 
-function ToOctal(X: Cardinal; const Len: Integer = 4): String;
-function FromOctal(const S: String): Cardinal;
-function EncodeStr(const WS: WideString; ACodePage: Word = CP_UTF8): AnsiString;
-function DecodeStr(const S: AnsiString; ACodePage: Word = CP_UTF8): WideString;
+function ToOctal(const X: Cardinal; const Len: Integer = 4): string;
+function FromOctal(const S: string): Cardinal;
+function EncodeStr(const WS: WideString; const ACodePage: Word = CP_UTF8): AnsiString;
+function DecodeStr(const S: AnsiString; const ACodePage: Word = CP_UTF8): WideString;
 
 implementation
 
 uses
-  DateUtils, Forms, WideStrUtils;
+  System.DateUtils,
+  System.WideStrUtils,
+  Vcl.Forms;
 
 var
   GSSH2Init: Integer;
@@ -396,7 +396,7 @@ begin
   Application.ProcessMessages;
 end;
 
-function FromOctal(const S: String): Cardinal;
+function FromOctal(const S: string): Cardinal;
 var
   I: Cardinal;
 begin
@@ -405,9 +405,10 @@ begin
     Result := Result * 8 + Cardinal(StrToIntDef(Copy(S, I, 1), 0));
 end;
 
-function ToOctal(X: Cardinal; const Len: Integer): String;
+function ToOctal(const X: Cardinal; const Len: Integer = 4): string;
 var
   M: Integer;
+  Value: Cardinal;
 begin
   if X = 0 then
   begin
@@ -415,10 +416,11 @@ begin
     Exit;
   end;
   Result := '';
-  while X <> 0 do
+  Value := X;
+  while Value <> 0 do
   begin
-    M := X mod 8;
-    X := X div 8;
+    M := Value mod 8;
+    Value := Value div 8;
     Result := IntToStr(M) + Result;
   end;
   if Len > 0 then
@@ -426,7 +428,7 @@ begin
     Result := Copy(Result, Length(Result) - Len + 1, Len);
 end;
 
-function EncodeStr(const WS: WideString; ACodePage: Word): AnsiString;
+function EncodeStr(const WS: WideString; const ACodePage: Word = CP_UTF8): AnsiString;
 var
   L: Integer;
   Flags: Cardinal;
@@ -447,14 +449,14 @@ begin
   end;
 end;
 
-function DecodeStr(const S: AnsiString; ACodePage: Word): WideString;
+function DecodeStr(const S: AnsiString; const ACodePage: Word = CP_UTF8): WideString;
 var
   L: Integer;
   Flags: Cardinal;
 begin
   if ACodePage = CP_UTF8 then
   begin
-    Result := UTF8Decode(S);
+    Result := UTF8ToWideString(S);
     Exit;
   end;
 
@@ -484,23 +486,23 @@ begin
     Self.FHidden := X.FHidden;
     Self.FGIDStr := X.FGIDStr;
     Self.FUIDStr := X.FUIDStr;
-    Self.FPerms := X.FPerms;
-    Self.FAtime := X.FAtime;
-    Self.FMtime := X.FMtime;
-    Self.FFileSize := X.FFileSize;
-    Self.FUid := X.FUid;
-    Self.FGid := X.FGid;
+    Self.Permissions := X.Permissions;
+    Self.LastAccessTime := X.LastAccessTime;
+    Self.LastModificationTime := X.LastModificationTime;
+    Self.FileSize := X.FileSize;
+    Self.UID := X.UID;
+    Self.GID := X.GID;
   end
   else
     inherited Assign(ASource);
 end;
 
-function TSFTPItem.GetPermsOct: String;
+function TSFTPItem.GetPermsOct: string;
 begin
   Result := ToOctal(Permissions)
 end;
 
-procedure TSFTPItem.SetPermsOct(const Value: String);
+procedure TSFTPItem.SetPermsOct(const Value: string);
 begin
   Permissions := FromOctal(Value)
 end;
@@ -556,7 +558,7 @@ begin
   if not FEnabled then
   begin
     if Suspended then
-      Resume;
+      Resume; // TODO -o##jpluimers -cGeneral : solve that Resume is deprecated }
     SetEvent(FInEvent);
     FEnabled := True;
   end;
@@ -593,7 +595,7 @@ begin
   Result := TSFTPItem( inherited Add);
 end;
 
-constructor TSFTPItems.Create(AOwner: TComponent);
+constructor TSFTPItems.Create(const AOwner: TComponent);
 begin
   inherited Create(TSFTPItem);
   FOwner := AOwner;
@@ -633,10 +635,10 @@ const
   // this was only tested on openssh server listing
   // hence the above constants for pos,
   // dunno if this is standardized or not
-  function ExtractEntryData(ALongEntry: PAnsiChar; const APosition: Integer): String; inline;
+  function ExtractEntryData(ALongEntry: PAnsiChar; const APosition: Integer): string; inline;
   var
     I, J, L, K: Integer;
-    S: String;
+    S: string;
     P: PAnsiChar;
   begin
     Result := '';
@@ -710,7 +712,7 @@ begin
           Client := TSFTPClient(Owner);
           FillChar(LinkAttrs, sizeof(LinkAttrs), 0);
           try
-            Item.LinkPath := Client.ResolveSymLink(Client.CurrentDirectory + '/' + Item.FFileName,
+            Item.LinkPath := Client.ResolveSymLink(Client.CurrentDirectory + '/' + Item.FileName,
               LinkAttrs, True);
             if TestBit(LinkAttrs.Flags, LIBSSH2_SFTP_ATTR_PERMISSIONS) and
               (LinkAttrs.Permissions and LIBSSH2_SFTP_S_IFMT = LIBSSH2_SFTP_S_IFDIR) then
@@ -810,11 +812,11 @@ var
       repeat
         repeat
           Inc(I);
-        until not(MyCmpWStr(AItems[I - 1].FFileName, P.FFileName) < 0);
+        until not(MyCmpWStr(AItems[I - 1].FileName, P.FileName) < 0);
         Dec(I);
         repeat
           Dec(J);
-        until not(MyCmpWStr(P.FFileName, AItems[J + 1].FFileName) < 0);
+        until not(MyCmpWStr(P.FileName, AItems[J + 1].FileName) < 0);
         Inc(J);
 
         if I > J then
@@ -889,9 +891,8 @@ end;
 
 { TSSH2Client }
 
-procedure TSSH2Client.Cancel(ADisconnect: Boolean);
+procedure TSSH2Client.Cancel(const ADisconnect: Boolean = True);
 begin
-  //
   FCanceled := True;
   Sleep(500);
   try
@@ -930,9 +931,9 @@ type
   function ParseAuthList(const AList: PAnsiChar): TAuthModes;
   var
     Modes: TAuthModes;
-    S: String;
+    S: string;
   begin
-    S := String(AList);
+    S := string(AList);
     if amTryAll in FAuthModes then
     begin
       Result := [amTryAll];
@@ -957,9 +958,12 @@ type
   end;
 
   function UserAuthPassword: Boolean;
+  var
+    Returned: Integer;
   begin
-    Result := libssh2_userauth_password(FSession, PAnsiChar(AnsiString(FUserName)),
-      PAnsiChar(AnsiString(FPassword))) = 0;
+    Returned := libssh2_userauth_password(FSession, PAnsiChar(AnsiString(FUserName)),
+      PAnsiChar(AnsiString(FPassword)));
+    Result := Returned = 0;
   end;
 
   procedure KbdInteractiveCallback(const Name: PAnsiChar; name_len: Integer;
@@ -969,36 +973,48 @@ type
       abstract: Pointer); cdecl;
 
   var
-    Pass: String;
+    HavePassword: Boolean;
+    Pass: string;
     Data: PAbstractData;
+    SSH2Client: TSSH2Client;
   begin
     if num_prompts = 1 then
     begin
       // zato sto je abstract->void**
       Data := PAbstractData(Pointer(abstract)^);
-      Pass := TSSH2Client(Data.SelfPtr).Password;
-      if Assigned(TSSH2Client(Data.SelfPtr).FOnKeybInt) then
-        TSSH2Client(Data.SelfPtr).FOnKeybInt(Data.SelfPtr, Pass);
+      SSH2Client := TSSH2Client(Data.SelfPtr);
+      Pass := SSH2Client.Password;
+      // TODO -o##jpluimers -cGeneral : if Password is assigned, then firs try that at least once before asking
+      if Assigned(SSH2Client.FOnKeybInt) then
+        HavePassword := SSH2Client.FOnKeybInt(Data.SelfPtr, Pass)
+      else
+        HavePassword := Pass <> '';
 
-      if (Pass <> '') and (Pos('password', LowerCase(String(prompts.Text))) > 0) then
+      if HavePassword and (Pass <> '') and (Pos('password', LowerCase(string(prompts.Text))) > 0) then
       begin
-        responses.Text := PAnsiChar(AnsiString(Pass));
-        responses.Length := Length(Pass);
+        responses.text := PAnsiChar(AnsiString(Pass));
+        responses.length := Length(Pass);
       end;
     end;
   end;
 
   function UserAuthKeyboardInteractive: Boolean;
+  var
+    Returned: Integer;
   begin
-    Result := libssh2_userauth_keyboard_interactive(FSession, PAnsiChar(AnsiString(FUserName)),
-      @KbdInteractiveCallback) = 0;
+    Returned := libssh2_userauth_keyboard_interactive(FSession, PAnsiChar(AnsiString(FUserName)),
+      @KbdInteractiveCallback);
+    Result := Returned = 0;
   end;
 
   function UserAuthPKey: Boolean;
+  var
+    Returned: Integer;
   begin
-    Result := libssh2_userauth_publickey_fromfile(FSession, PAnsiChar(AnsiString(FUserName)),
+    Returned := libssh2_userauth_publickey_fromfile(FSession, PAnsiChar(AnsiString(FUserName)),
       PAnsiChar(AnsiString(FPubKeyPath)), PAnsiChar(AnsiString(FPrivKeyPath)),
-      PAnsiChar(AnsiString(FPrivKeyPass))) = 0;
+      PAnsiChar(AnsiString(FPrivKeyPass)));
+    Result := Returned = 0;
   end;
 
   function UserAuthPKeyViaAgent: Boolean;
@@ -1008,7 +1024,7 @@ type
   begin
     Result := False;
     Agent := libssh2_agent_init(FSession);
-    if Agent <> nil then
+    if Assigned(Agent) then
     begin
       try
         if libssh2_agent_connect(Agent) = 0 then
@@ -1064,7 +1080,7 @@ begin
   if not ConnectSocket(Sock) then
     RaiseSSHError(FLastErrStr);
   FSocket := Sock;
-  if FSession <> nil then
+  if Assigned(FSession) then
     libssh2_session_free(FSession);
 
   Abstract.SelfPtr := Self;
@@ -1091,7 +1107,7 @@ begin
 
   if libssh2_session_startup(FSession, FSocket) = 0 then
   begin
-    if FHashMgr <> nil then
+    if Assigned(FHashMgr) then
     begin
       case FHashMgr.GetHashMode of
         hmMD5:
@@ -1133,6 +1149,7 @@ begin
   auth :
 
     AuthOK := False;
+    // TODO -o##jpluimers -cGeneral : keep the order from UserAuthList
     AuthMode := ParseAuthList(UserAuthList);
     if amTryAll in AuthMode then
       AuthOK := UserAuthTryAll
@@ -1177,7 +1194,7 @@ type
   TConectData = record
     S: Integer;
     ConnectRes: Integer;
-    LastErr: String;
+    LastErr: string;
     ResAddrInfo: PAddrInfo;
     HaveRes: Boolean;
   end;
@@ -1187,10 +1204,9 @@ type
     PData: PConectData;
     P: PAddrInfo;
   begin
-    //
     PData := PConectData(TWorkThread(ASender).Data);
     P := PData.ResAddrInfo;
-    while P <> nil do
+    while Assigned(P) do
     begin
       PData.ConnectRes := connect2(PData.S, P^.ai_addr, P^.ai_addrlen);
       PData.LastErr := SysErrorMessage(WSAGetLastError);
@@ -1319,7 +1335,7 @@ end;
 procedure TSSH2Client.Disconnect;
 begin
   try
-    if FSession <> nil then
+    if Assigned(FSession) then
     begin
       libssh2_session_disconnect(FSession,
         PAnsiChar(AnsiString(FClientBanner + ': ' + GetVersion + ' going to shutdown. Bye.')));
@@ -1353,7 +1369,7 @@ begin
   Result := FConnected;
 end;
 
-function TSSH2Client.GetLastSSHError(E: Integer): String;
+function TSSH2Client.GetLastSSHError(const E: Integer = 0): string;
 var
   I: Integer;
   P: PAnsiChar;
@@ -1364,20 +1380,20 @@ begin
     Result := 'No error';
   I := 0;
   P := PAnsiChar(AnsiString(Result));
-  if FSession <> nil then
+  if Assigned(FSession) then
     libssh2_session_last_error(FSession, P, I, 0);
-  Result := String(P);
+  Result := string(P);
 end;
 
-function TSSH2Client.GetLibString: String;
+function TSSH2Client.GetLibString: string;
 begin
-  Result := String(libssh2_version(0));
+  Result := string(libssh2_version(0));
 end;
 
-function TSSH2Client.GetSessionMethodsStr: String;
+function TSSH2Client.GetSessionMethodsStr: string;
 begin
   Result := '';
-  if FSession <> nil then
+  if Assigned(FSession) then
     Result := Format('KEX: %s, CRYPT: %s, MAC: %s, COMP: %s, LANG: %s',
       [libssh2_session_methods(FSession, LIBSSH2_METHOD_KEX), libssh2_session_methods(FSession,
         LIBSSH2_METHOD_CRYPT_CS), libssh2_session_methods(FSession, LIBSSH2_METHOD_MAC_CS),
@@ -1396,7 +1412,7 @@ begin
   Result := FSocket;
 end;
 
-function TSSH2Client.GetVersion: String;
+function TSSH2Client.GetVersion: string;
 begin
   Result := ClassName + ' v' + SFTPCLIENT_VERSION;
 end;
@@ -1411,9 +1427,8 @@ begin
   Result := EncodeStr(WS, FCodePage);
 end;
 
-procedure TSSH2Client.RaiseSSHError(const AMsg: String; E: Integer);
+procedure TSSH2Client.RaiseSSHError(const AMsg: string; E: Integer);
 begin
-  //
   if AMsg <> '' then
     raise ESSH2Exception.Create(AMsg)
   else
@@ -1449,9 +1464,8 @@ end;
 
 { TSFTPClient }
 
-procedure TSFTPClient.Cancel(ADisconnect: Boolean);
+procedure TSFTPClient.Cancel(const ADisconnect: Boolean = True);
 begin
-  //
   FCanceled := True;
   inherited;
 end;
@@ -1461,10 +1475,10 @@ var
   DirHandle: PLIBSSH2_SFTP_HANDLE;
 begin
   Result := False;
-  if FSFtp <> nil then
+  if Assigned(FSFtp) then
   begin
     DirHandle := libssh2_sftp_opendir(FSFtp, PAnsiChar(MyEncode(APath)));
-    if DirHandle <> nil then
+    if Assigned(DirHandle) then
     begin
       libssh2_sftp_closedir(DirHandle);
       Result := True;
@@ -1557,7 +1571,7 @@ end;
 procedure TSFTPClient.Disconnect;
 begin
   try
-    if FSFtp <> nil then
+    if Assigned(FSFtp) then
       libssh2_sftp_shutdown(FSFtp);
     inherited;
   finally
@@ -1575,7 +1589,7 @@ begin
   Result := '';
 
   DirHandle := libssh2_sftp_opendir(FSFtp, '.');
-  if DirHandle <> nil then
+  if Assigned(DirHandle) then
   begin
     GetMem(Buf, BUF_LEN);
     try
@@ -1599,7 +1613,6 @@ var
   Buf: PAnsiChar;
   R, N: Integer;
 begin
-  //
   FCanceled := False;
   if libssh2_sftp_stat(FSFtp, PAnsiChar(MyEncode(ASourceFileName)), Attribs) = 0 then
   begin
@@ -1645,13 +1658,13 @@ begin
     RaiseSSHError;
 end;
 
-function TSFTPClient.GetLastSSHError(E: Integer): String;
+function TSFTPClient.GetLastSSHError(const E: Integer = 0): string;
 var
-  S: String;
+  S: string;
   C: Integer;
 begin
   S := '';
-  if FSFtp <> nil then
+  if Assigned(FSFtp) then
   begin
     S := 'SFTP: ';
     if E = 0 then
@@ -1751,7 +1764,7 @@ begin
       R := libssh2_sftp_readdir_ex(DirHandle, EntryBuffer, BUF_LEN, LongEntry, BUF_LEN, @Attribs);
       if (R <= 0) or FCanceled then
         break;
-      FItems.ParseEntryBuffers(EntryBuffer, LongEntry, Attribs, FCodePage);
+      FItems.ParseEntryBuffers(EntryBuffer, LongEntry, Attribs, CodePage);
     until not True;
   finally
     FItems.EndUpdate;
@@ -1798,8 +1811,7 @@ begin
     RaiseSSHError;
 end;
 
-procedure TSFTPClient.Put(const ASource: TStream; const ADestFileName: WideString;
-  AOverwrite: Boolean);
+procedure TSFTPClient.Put(const ASource: TStream; const ADestFileName: WideString; const AOverwrite: Boolean = False);
 var
   R, N, K: Integer;
   Mode: Integer;
@@ -1849,10 +1861,9 @@ begin
   end;
 end;
 
-procedure TSFTPClient.RaiseSSHError(const AMsg: String; E: Integer);
+procedure TSFTPClient.RaiseSSHError(const AMsg: string; E: Integer);
 begin
   inherited;
-  //
 end;
 
 procedure TSFTPClient.Rename(const AOldName, ANewName: WideString);
@@ -1863,8 +1874,7 @@ begin
     RaiseSSHError;
 end;
 
-function TSFTPClient.ResolveSymLink(const AOrigin: WideString;
-  var AAtributes: LIBSSH2_SFTP_ATTRIBUTES; ARealPath: Boolean): String;
+function TSFTPClient.ResolveSymLink(const AOrigin: WideString; var AAtributes: LIBSSH2_SFTP_ATTRIBUTES; const ARealPath: Boolean = False): string;
 const
   BUF_LEN = 4 * 1024;
 var
@@ -1887,14 +1897,17 @@ begin
     RaiseSSHError;
 end;
 
-procedure TSFTPClient.SetAttributes(const APath: WideString; AAtribs: LIBSSH2_SFTP_ATTRIBUTES);
+procedure TSFTPClient.SetAttributes(const APath: WideString; const AAtribs: LIBSSH2_SFTP_ATTRIBUTES);
+var
+  Atribs: LIBSSH2_SFTP_ATTRIBUTES;
 begin
   FCanceled := False;
-  if libssh2_sftp_setstat(FSFtp, PAnsiChar(MyEncode(APath)), AAtribs) <> 0 then
+  Atribs := AAtribs;
+  if libssh2_sftp_setstat(FSFtp, PAnsiChar(MyEncode(APath)), Atribs) <> 0 then
     RaiseSSHError;
 end;
 
-procedure TSFTPClient.SetCurrentDir(const Value: String);
+procedure TSFTPClient.SetCurrentDir(const Value: string);
 begin
   if FCurrentDir <> Value then
     if ChangeDir(Value) then
@@ -1904,12 +1917,12 @@ begin
     end;
 end;
 
-procedure TSFTPClient.SetPermissions(const APath: WideString; const AOctalPerms: String);
+procedure TSFTPClient.SetPermissions(const APath: WideString; const AOctalPerms: string);
 begin
   SetPermissions(APath, FromOctal(AOctalPerms));
 end;
 
-procedure TSFTPClient.SetPermissions(const APath: WideString; APerms: Cardinal);
+procedure TSFTPClient.SetPermissions(const APath: WideString; const APerms: Cardinal);
 var
   Attribs: LIBSSH2_SFTP_ATTRIBUTES;
 begin
@@ -1921,7 +1934,7 @@ end;
 
 { TSCPClient }
 
-procedure TSCPClient.Cancel(ADisconnect: Boolean);
+procedure TSCPClient.Cancel(const ADisconnect: Boolean = True);
 begin
   FCanceled := True;
   inherited;
@@ -1936,7 +1949,6 @@ var
   N, R, K: Integer;
   Buf: array [0 .. BUF_LEN - 1] of AnsiChar;
 begin
-  //
   FCanceled := False;
   Channel := libssh2_scp_recv(GetSessionPtr, PAnsiChar(MyEncode(ASourceFileName)), AStat);
   if Channel = nil then
@@ -1976,7 +1988,6 @@ var
   N, K, R: Integer;
   Transfered: UInt64;
 begin
-  //
   FCanceled := False;
   if AMode <> 0 then
     Mode := AMode

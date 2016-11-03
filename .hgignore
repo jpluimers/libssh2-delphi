@@ -1,0 +1,6 @@
+syntax: glob
+__history\*
+*.dcu
+*.identcache
+*.local
+src\demo\SftpClientDemo_XE2.res
