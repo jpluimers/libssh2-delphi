@@ -1,19 +1,20 @@
-program Project1;
+program SftpClientDemo;
 
 uses
   Forms,
-  Unit3 in 'Unit3.pas' {Form3},
+  MainFormUnit in 'MainFormUnit.pas' {MainForm},
   libssh2 in '..\libssh2.pas',
   libssh2_publickey in '..\libssh2_publickey.pas',
   libssh2_sftp in '..\libssh2_sftp.pas',
   uMySFTPClient in '..\comp\uMySFTPClient.pas',
-  Unit4 in 'Unit4.pas' {FrmProgress};
+  ProgressFormUnit in 'ProgressFormUnit.pas' {ProgressForm},
+  SelectDirectoryUnit in 'SelectDirectoryUnit.pas';
 
 {$R *.res}
 
 begin
   Application.Initialize;
   Application.MainFormOnTaskbar := True;
-  Application.CreateForm(TForm3, Form3);
+  Application.CreateForm(TMainForm, MainForm);
   Application.Run;
 end.
