@@ -954,7 +954,10 @@ type
 
     Result := FAuthModes * Modes;
     if Result = [] then
+    begin
+      // TODO -o##jpl -cGeneral : specify expected/actual modes in the exception. }
       RaiseSSHError('Server does not support requested auth mode(s)');
+    end;
   end;
 
   function UserAuthPassword: Boolean;

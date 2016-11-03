@@ -1,6 +1,8 @@
 unit libssh2_publickey;
 
 // **zm ** translated to pascal
+// wiert.me: updated from 1.2.6 to to 1.8.1_DEV retaining libssh2 New BSD License below; 
+// Delphi specific modifications Copyright (c) 2016 Jeroen Wiert Pluimers
 
 interface
 uses
@@ -10,7 +12,6 @@ uses
   Wintypes, WinProcs,
 {$ENDIF}
  libssh2;
-
 
 {+// Copyright (c) 2004-2006, Sara Golemon <sarag@libssh2.org> }
 {-* All rights reserved. }
@@ -59,31 +60,31 @@ uses
 
 
 type
- _LIBSSH2_PUBLICKEY = record
- end;
- TLIBSSH2_PUBLICKEY = _LIBSSH2_PUBLICKEY;
- PLIBSSH2_PUBLICKEY = ^TLIBSSH2_PUBLICKEY;
+  _LIBSSH2_PUBLICKEY = record
+  end;
+  TLIBSSH2_PUBLICKEY = _LIBSSH2_PUBLICKEY;
+  PLIBSSH2_PUBLICKEY = ^TLIBSSH2_PUBLICKEY;
 
 type
- PLIBSSH2_PUBLICKEY_ATTRIBUTE = ^libssh2_publickey_attribute;
- libssh2_publickey_attribute = record
-    name: PAnsiChar;
-    name_len: ULong;
-    value: PAnsiChar;
-    value_len: ULong;
-    mandatory: AnsiChar;
+  PLIBSSH2_PUBLICKEY_ATTRIBUTE = ^libssh2_publickey_attribute;
+  libssh2_publickey_attribute = record
+     name: PAnsiChar;
+     name_len: ULong;
+     value: PAnsiChar;
+     value_len: ULong;
+     mandatory: AnsiChar;
   end {libssh2_publickey_attribute};
 
 type
   _libssh2_publickey_list = record
     packet: PByte; {= For freeing }
+	
     name: PUCHAR;
-    name_len: LongInt;
+    name_len: ULong;
     blob: PUCHAR;
     blob_len: ULong;
     num_attrs: ULong;
-    attrs: PLIBSSH2_PUBLICKEY_ATTRIBUTE;
-{= free me }
+    attrs: PLIBSSH2_PUBLICKEY_ATTRIBUTE; {= free me }
   end {_libssh2_publickey_list};
   libssh2_publickey_list = _libssh2_publickey_list;
   Plibssh2_publickey_list =  ^libssh2_publickey_list;
@@ -93,19 +94,18 @@ type
 function libssh2_publickey_init(session: PLIBSSH2_SESSION): PLIBSSH2_PUBLICKEY cdecl;
 
 type
- LIBSSH2_PUBLICKEY_ATTRIBUTE_ARRAY = array of LIBSSH2_PUBLICKEY_ATTRIBUTE;
+  LIBSSH2_PUBLICKEY_ATTRIBUTE_ARRAY = array of LIBSSH2_PUBLICKEY_ATTRIBUTE;
 
 function libssh2_publickey_add_ex(pkey: PLIBSSH2_PUBLICKEY;
                                   const name: PByte;
                                   name_len: ULong;
                                   const blob: PByte;
-                                  blob_len: ULong;
-                                  overwrite: AnsiChar;
+                                  blob_len: ULong; overwrite: AnsiChar;
                                   num_attrs: ULong;
                                   const attrs: LIBSSH2_PUBLICKEY_ATTRIBUTE_ARRAY): Integer; cdecl;
 
-function libssh2_publickey_add(pkey: PLIBSSH2_PUBLICKEY; const name: PByte; const blob: PByte;
-   blob_len: ULong; overwrite: AnsiChar; num_attrs: ULong; const attrs: LIBSSH2_PUBLICKEY_ATTRIBUTE_ARRAY): Integer; inline;
+function libssh2_publickey_add(pkey: PLIBSSH2_PUBLICKEY; const name: PByte; const blob: PByte; blob_len: ULong; overwrite: AnsiChar; 
+                               num_attrs: ULong; const attrs: LIBSSH2_PUBLICKEY_ATTRIBUTE_ARRAY): Integer; inline;
 
 function libssh2_publickey_remove_ex(pkey: PLIBSSH2_PUBLICKEY;
                                      const name: PByte;
@@ -113,10 +113,7 @@ function libssh2_publickey_remove_ex(pkey: PLIBSSH2_PUBLICKEY;
                                      const blob: PByte;
                                      blob_len: ULong): Integer; cdecl;
 
-function libssh2_publickey_remove(pkey: PLIBSSH2_PUBLICKEY;
-                                     const name: PByte;
-                                     const blob: PByte;
-                                     blob_len: ULong): Integer; inline;
+function libssh2_publickey_remove(pkey: PLIBSSH2_PUBLICKEY; const name: PByte; const blob: PByte; blob_len: ULong): Integer; inline;
 
 function libssh2_publickey_list_fetch(pkey: PLIBSSH2_PUBLICKEY;
                                       var num_keys: LongInt; 
@@ -124,7 +121,6 @@ function libssh2_publickey_list_fetch(pkey: PLIBSSH2_PUBLICKEY;
 
 procedure libssh2_publickey_list_free(pkey: PLIBSSH2_PUBLICKEY;
                                      var pkey_list: LIBSSH2_PUBLICKEY_LIST) cdecl; 
-
 
 function libssh2_publickey_shutdown(pkey: PLIBSSH2_PUBLICKEY): Integer; cdecl;
 
@@ -137,10 +133,11 @@ function libssh2_publickey_list_fetch; external libssh2_name;
 procedure libssh2_publickey_list_free; external libssh2_name;
 function libssh2_publickey_shutdown; external libssh2_name;
 
-function libssh2_publickey_add(pkey: PLIBSSH2_PUBLICKEY; const name: PByte; const blob: PByte;
-   blob_len: ULong;  overwrite: AnsiChar; num_attrs: ULong; const attrs: LIBSSH2_PUBLICKEY_ATTRIBUTE_ARRAY): Integer;
+function libssh2_publickey_add(pkey: PLIBSSH2_PUBLICKEY; const name: PByte; const blob: PByte; blob_len: ULong;  overwrite: AnsiChar; 
+                               num_attrs: ULong; const attrs: LIBSSH2_PUBLICKEY_ATTRIBUTE_ARRAY): Integer;
 begin
-  Result := libssh2_publickey_add_ex(pkey, name, Length(PAnsiChar(name)), blob, blob_len, overwrite, num_attrs, attrs);
+  Result := libssh2_publickey_add_ex(pkey, name, Length(PAnsiChar(name)), blob, blob_len, overwrite, 
+                                     num_attrs, attrs);
 end;
 
 function libssh2_publickey_remove(pkey: PLIBSSH2_PUBLICKEY; const name: PByte; const blob: PByte; blob_len: ULong): Integer;
