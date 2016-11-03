@@ -1,6 +1,8 @@
 unit libssh2_sftp;
 
 // **zm ** translated to pascal
+// wiert.me: updated from 1.2.6 to to 1.8.1_DEV retaining libssh2 New BSD License below; 
+// Delphi specific modifications Copyright (c) 2016 Jeroen Wiert Pluimers
 
 interface
 uses
@@ -48,6 +50,11 @@ uses
 {-* OF SUCH DAMAGE. }
 {= }
 
+{* This is the maximum packet length to accept, as larger than this indicate
+   some kind of server problem. *}
+const
+  LIBSSH2_SFTP_PACKET_MAXLEN = 80000; // from sftp.c
+
 {+// Note: Version 6 was documented at the time of writing }
 {-* However it was marked as "DO NOT IMPLEMENT" due to pending changes }
 {-* }
@@ -55,22 +62,21 @@ uses
 {= }
 const
   LIBSSH2_SFTP_VERSION = 3;
-const
-  LIBSSH2_SFTP_PACKET_MAXLEN = 40000;
 
 type
   _LIBSSH2_SFTP = record
   end;
   LIBSSH2_SFTP_HANDLE = record
   end;
- _LIBSSH2_SFTP_HANDLE =        LIBSSH2_SFTP_HANDLE;
- PLIBSSH2_SFTP =               ^_LIBSSH2_SFTP;
- PLIBSSH2_SFTP_HANDLE =        ^LIBSSH2_SFTP_HANDLE;
+// _LIBSSH2_SFTP =               LIBSSH2_SFTP; // no use as the unit is already named libssh2_sftp and Delphi is case insensitive
+  _LIBSSH2_SFTP_HANDLE =        LIBSSH2_SFTP_HANDLE;
+  PLIBSSH2_SFTP =               ^_LIBSSH2_SFTP;
+  PLIBSSH2_SFTP_HANDLE =        ^LIBSSH2_SFTP_HANDLE;
 
 const
   LIBSSH2_SFTP_OPENFILE = 0;
 const
-  LIBSSH2_SFTP_OPENDIR_ = 1;
+  LIBSSH2_SFTP_OPENDIR_ = 1; // with underscore as there is already a metho method libssh2_sftp_opendir and Delphi case insensitive
 {+// Flags for rename_ex()*/ }
 const
   LIBSSH2_SFTP_RENAME_OVERWRITE = $00000001;
@@ -80,18 +86,18 @@ const
   LIBSSH2_SFTP_RENAME_NATIVE = $00000004;
 {+// Flags for stat_ex()*/ }
 const
-  LIBSSH2_SFTP_STAT_ = 0;
+  LIBSSH2_SFTP_STAT_ = 0; // with underscore
 const
-  LIBSSH2_SFTP_LSTAT_ = 1;
+  LIBSSH2_SFTP_LSTAT_ = 1; // with underscore
 const
-  LIBSSH2_SFTP_SETSTAT_ = 2;
+  LIBSSH2_SFTP_SETSTAT_ = 2; // with underscore
 {+// Flags for symlink_ex()*/ }
 const
-  LIBSSH2_SFTP_SYMLINK_ = 0;
+  LIBSSH2_SFTP_SYMLINK_ = 0; // with underscore
 const
-  LIBSSH2_SFTP_READLINK_ = 1;
+  LIBSSH2_SFTP_READLINK_ = 1; // with underscore
 const
-  LIBSSH2_SFTP_REALPATH_ = 2;
+  LIBSSH2_SFTP_REALPATH_ = 2; // with underscore
 {+// SFTP attribute flag bits*/ }
 const
   LIBSSH2_SFTP_ATTR_SIZE = $00000001;
@@ -104,22 +110,29 @@ const
 const
   LIBSSH2_SFTP_ATTR_EXTENDED = $80000000;
 
+{* SFTP statvfs flag bits *}
+const
+  LIBSSH2_SFTP_ST_RDONLY = $00000001;
+const
+  LIBSSH2_SFTP_ST_NOSUID = $00000002;
+
 {+// If flags & ATTR_* bit is set, then the value in this struct will be }
 {-* meaningful Otherwise it should be ignored }
 {= }
 type
   _LIBSSH2_SFTP_ATTRIBUTES = record
-    flags: Cardinal;
+    flags: ULong;
+
     filesize: LIBSSH2_UINT64_T;
-    uid, gid: Cardinal;
-    permissions: Cardinal;
-    atime, mtime: Cardinal;
+    uid, gid: ULong;
+    permissions: ULong;
+    atime, mtime: ULong;
   end;
 
- LIBSSH2_SFTP_ATTRIBUTES  =  _LIBSSH2_SFTP_ATTRIBUTES;
- PLIBSSH2_SFTP_ATTRIBUTES  =  ^_LIBSSH2_SFTP_ATTRIBUTES;
+  LIBSSH2_SFTP_ATTRIBUTES  =  _LIBSSH2_SFTP_ATTRIBUTES;
+  PLIBSSH2_SFTP_ATTRIBUTES  =  ^_LIBSSH2_SFTP_ATTRIBUTES;
 
- _LIBSSH2_SFTP_STATVFS = record
+  _LIBSSH2_SFTP_STATVFS = record
     f_bsize,    {/* file system block size */}
     f_frsize,   {/* fragment size */}
     f_blocks,   {/* size of fs in f_frsize units */}
@@ -214,7 +227,7 @@ const
  LIBSSH2_SFTP_S_ISUID = 2048; // set UID bit
  LIBSSH2_SFTP_S_ISGID = 1024; // set-group-ID bit
  LIBSSH2_SFTP_S_ISVTX = 512;  // sticky bit
-  
+
 
 {+// SFTP File Transfer Flags -- (e.g. flags parameter to sftp_open()) }
 {=* Danger will robinson... APPEND doesn't have any effect on OpenSSH servers }
@@ -319,9 +332,9 @@ function libssh2_sftp_readdir_ex(handle: PLIBSSH2_SFTP_HANDLE;
                                  buffer: PAnsiChar;
                                  buffer_maxlen: SIZE_T;
                                  longentry: PAnsiChar;
-                                 longentry_maxlen: SIZE_T; 
+                                 longentry_maxlen: SIZE_T;
                                  attrs: PLIBSSH2_SFTP_ATTRIBUTES): Integer; cdecl;
-                                 
+
 function libssh2_sftp_readdir(handle: PLIBSSH2_SFTP_HANDLE;
                                  buffer: PAnsiChar;
                                  buffer_maxlen: SIZE_T;  attrs: PLIBSSH2_SFTP_ATTRIBUTES): Integer; inline;
@@ -329,7 +342,7 @@ function libssh2_sftp_readdir(handle: PLIBSSH2_SFTP_HANDLE;
 
 function libssh2_sftp_write(handle: PLIBSSH2_SFTP_HANDLE;
                             const buffer: PAnsiChar;
-                            count: SIZE_T): Integer; cdecl; 
+                            count: SIZE_T): Integer; cdecl;
 
 
 function libssh2_sftp_close_handle(handle: PLIBSSH2_SFTP_HANDLE): Integer; cdecl;
