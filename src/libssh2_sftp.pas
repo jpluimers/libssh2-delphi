@@ -1,8 +1,11 @@
+{$Align 8} // force quad-word record field alighment so that fields of 2/4/8+ bytes size get aligned on 2/4/8 byte boundaries
+
 unit libssh2_sftp;
 
 // **zm ** translated to pascal
-// wiert.me: updated from 1.2.6 to to 1.8.1_DEV retaining libssh2 New BSD License below; 
-// Delphi specific modifications Copyright (c) 2016 Jeroen Wiert Pluimers
+// wiert.me retaining libssh2 New BSD License below Copyright (c) 2016 Jeroen Wiert Pluimers:
+// - updated from 1.2.6 to to 1.8.1_DEV retaining ;
+// - ensured correct record field alightment to match LIBSSH2.DLL expectations
 
 interface
 uses
