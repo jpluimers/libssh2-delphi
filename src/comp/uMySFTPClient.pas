@@ -83,6 +83,12 @@
   *  For details, see http://www.mozilla.org/MPL/MPL-1.1.html
   * }
 
+// wiert.me retaining MPL 1.1 license Copyright (c) 2016 Jeroen Wiert Pluimers:
+// - updated from 1.2.6 to to 1.8.1_DEV
+// - ensured methods are virtual so it's easier to override behaviour in descendants
+// - added various TODO items
+// - ensured port 22 is defined as a constant for better readability and re-use
+
 unit uMySFTPClient;
 
 interface
@@ -143,13 +149,13 @@ type
     FData: Pointer;
   strict protected
     procedure Execute; override;
-    procedure Trigger;
+    procedure Trigger; virtual;
   public
     constructor Create(const CreateSuspended: Boolean);
     destructor Destroy; override;
     procedure Terminate; overload;
-    procedure Start;
-    procedure Stop;
+    procedure Start; virtual;
+    procedure Stop; virtual;
     property Interval: Cardinal Read FInterval Write FInterval;
     property Event: TNotifyEvent Read FNEvent Write FNEvent;
     property ThreadSender: TObject Read FSender Write FSender;
@@ -207,11 +213,10 @@ type
     function GetOwner: TPersistent; override;
   public
     constructor Create(const AOwner: TComponent);
-    function Add: TSFTPItem;
-    function IndexOf(const AItem: TSFTPItem): Integer;
-    procedure ParseEntryBuffers(ABuffer, ALongEntry: PAnsiChar;
-      const AAttributes: LIBSSH2_SFTP_ATTRIBUTES; ACodePage: Word = CP_UTF8);
-    procedure SortDefault;
+    function Add: TSFTPItem; virtual;
+    function IndexOf(const AItem: TSFTPItem): Integer; virtual;
+    procedure ParseEntryBuffers(ABuffer, ALongEntry: PAnsiChar; const AAttributes: LIBSSH2_SFTP_ATTRIBUTES; ACodePage: Word = CP_UTF8); virtual;
+    procedure SortDefault; virtual;
     property Path: WideString read FPath write FPath;
     property Items[const AIndex: Integer]: TSFTPItem read GetItems write SetItems; default;
   end;
@@ -253,21 +258,23 @@ type
     FOnConnect: TNotifyEvent;
     FCodePage: Word;
     FCompression: Boolean;
-    function GetConnected: Boolean;
-    procedure SetConnected(const Value: Boolean);
-    procedure SetAuthModes(const Value: TAuthModes);
-    procedure DoOnFingerprint(const AState: TFingerprintState; var AAction: TConnectHashAction);
-    function GetVersion: string;
-    function GetLibString: string;
   strict protected
-    function GetSessionPtr: PLIBSSH2_SESSION;
-    function GetSocketHandle: Integer;
+    function GetSessionPtr: PLIBSSH2_SESSION; virtual;
+    function GetSocketHandle: Integer; virtual;
     function CreateSocket: Integer; virtual;
     function ConnectSocket(var S: Integer): Boolean; virtual;
+    procedure DoOnFingerprint(const AState: TFingerprintState; var AAction: TConnectHashAction); virtual;
+    function GetConnected: Boolean; virtual;
+    function GetLibString: string; virtual;
+    function GetVersion: string; virtual;
     procedure RaiseSSHError(const AMsg: string = ''; E: Integer = 0); virtual;
     function MyEncode(const WS: WideString): AnsiString; virtual;
     function MyDecode(const S: AnsiString): WideString; virtual;
+    procedure SetAuthModes(const Value: TAuthModes); virtual;
+    procedure SetConnected(const Value: Boolean); virtual;
   public
+  const
+    DefaultSshPort = 22;
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
 
@@ -275,10 +282,10 @@ type
     procedure Disconnect; virtual;
     function GetLastSSHError(const E: Integer = 0): string; virtual;
     procedure Cancel(const ADisconnect: Boolean = True); virtual;
-    function GetSessionMethodsStr: string;
+    function GetSessionMethodsStr: string; virtual;
 
     property Host: string read FHost write FHost;
-    property Port: Word read FPort write FPort default 22;
+    property Port: Word read FPort write FPort default DefaultSshPort;
     property IPVersion: TIPVersion read FIPVersion write FIPVersion;
     property KeepAlive: Boolean read FKeepAlive write FKeepAlive;
     property SockSndRcvBufLen: Integer read FSockBufLen write FSockBufLen;
@@ -314,10 +321,10 @@ type
     FOnNoStartDir: TContinueEvent;
     FReadBufLen: Cardinal;
     FWriteBufLen: Cardinal;
-    procedure SetCurrentDir(const Value: string);
   strict protected
     procedure RaiseSSHError(const AMsg: string = ''; E: Integer = 0); override;
-    function ChangeDir(const APath: WideString): Boolean;
+    function ChangeDir(const APath: WideString): Boolean; virtual;
+    procedure SetCurrentDir(const Value: string); virtual;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -327,19 +334,19 @@ type
     function GetLastSSHError(const E: Integer = 0): string; override;
     procedure Cancel(const ADisconnect: Boolean = True); override;
 
-    procedure List(const AStartPath: WideString = '');
-    procedure DeleteFile(const AFileName: WideString);
-    procedure DeleteDir(const ADirName: WideString);
-    procedure MakeDir(const ADirName: WideString; AMode: Integer = 0; ARecurse: Boolean = False);
-    procedure Get(const ASourceFileName: WideString; const ADest: TStream; AResume: Boolean);
-    procedure Put(const ASource: TStream; const ADestFileName: WideString; const AOverwrite: Boolean = False);
-    procedure Rename(const AOldName, ANewName: WideString);
-    procedure MakeSymLink(const AOrigin, ADest: WideString);
-    function ResolveSymLink(const AOrigin: WideString; var AAtributes: LIBSSH2_SFTP_ATTRIBUTES; const ARealPath: Boolean = False): string;
-    procedure SetAttributes(const APath: WideString; const AAtribs: LIBSSH2_SFTP_ATTRIBUTES);
-    procedure SetPermissions(const APath: WideString; const APerms: Cardinal); overload;
-    procedure SetPermissions(const APath: WideString; const AOctalPerms: string); overload;
-    function ExpandCurrentDirPath: WideString;
+    procedure List(const AStartPath: WideString = ''); virtual;
+    procedure DeleteFile(const AFileName: WideString); virtual;
+    procedure DeleteDir(const ADirName: WideString); virtual;
+    procedure MakeDir(const ADirName: WideString; AMode: Integer = 0; ARecurse: Boolean = False); virtual;
+    procedure Get(const ASourceFileName: WideString; const ADest: TStream; AResume: Boolean); virtual;
+    procedure Put(const ASource: TStream; const ADestFileName: WideString; const AOverwrite: Boolean = False); virtual;
+    procedure Rename(const AOldName, ANewName: WideString); virtual;
+    procedure MakeSymLink(const AOrigin, ADest: WideString); virtual;
+    function ResolveSymLink(const AOrigin: WideString; var AAtributes: LIBSSH2_SFTP_ATTRIBUTES; const ARealPath: Boolean = False): string; virtual;
+    procedure SetAttributes(const APath: WideString; const AAtribs: LIBSSH2_SFTP_ATTRIBUTES); virtual;
+    procedure SetPermissions(const APath: WideString; const APerms: Cardinal); overload; virtual;
+    procedure SetPermissions(const APath: WideString; const AOctalPerms: string); overload; virtual;
+    function ExpandCurrentDirPath: WideString; virtual;
 
     property ReadBufferLen: Cardinal read FReadBufLen write FReadBufLen;
     property WriteBufferLen: Cardinal read FWriteBufLen write FWriteBufLen;
@@ -357,9 +364,8 @@ type
     FOnTProgress: TTransferProgress;
   public
     procedure Cancel(const ADisconnect: Boolean = True); override;
-    procedure Get(const ASourceFileName: WideString; const ADest: TStream; var AStat: TStructStat);
-    procedure Put(const ASource: TStream; const ADestFileName: WideString; AFileSize: UInt64;
-      ATime, MTime: TDateTime; AMode: Integer = 0);
+    procedure Get(const ASourceFileName: WideString; const ADest: TStream; var AStat: TStructStat); virtual;
+    procedure Put(const ASource: TStream; const ADestFileName: WideString; AFileSize: UInt64; ATime, MTime: TDateTime; AMode: Integer = 0); virtual;
     property OnTransferProgress: TTransferProgress read FOnTProgress write FOnTProgress;
   end;
 
@@ -603,7 +609,7 @@ end;
 
 function TSFTPItems.GetItems(const AIndex: Integer): TSFTPItem;
 begin
-  Result := TSFTPItem( inherited Items[AIndex]);
+  Result := TSFTPItem(inherited Items[AIndex]);
 end;
 
 function TSFTPItems.GetOwner: TPersistent;
@@ -624,8 +630,7 @@ begin
     end;
 end;
 
-procedure TSFTPItems.ParseEntryBuffers(ABuffer, ALongEntry: PAnsiChar;
-  const AAttributes: LIBSSH2_SFTP_ATTRIBUTES; ACodePage: Word);
+procedure TSFTPItems.ParseEntryBuffers(ABuffer, ALongEntry: PAnsiChar; const AAttributes: LIBSSH2_SFTP_ATTRIBUTES; ACodePage: Word = CP_UTF8);
 
 const
   UID_POS = 3;
@@ -1262,7 +1267,7 @@ begin
       Worker.Start;
       while not(Data.HaveRes or FCanceled or Application.Terminated) do
       begin
-        ProcessMsgs;
+        ProcessMsgs; // TODO: ##jpl
         Sleep(1);
       end;
       Worker.Stop;
@@ -1286,7 +1291,7 @@ constructor TSSH2Client.Create(AOwner: TComponent);
 begin
   inherited;
   FHost := '';
-  FPort := 22;
+  FPort := DefaultSshPort;
   FUserName := '';
   FPassword := '';
   FIPVersion := IPvUNSPEC;
@@ -1353,8 +1358,7 @@ begin
   end;
 end;
 
-procedure TSSH2Client.DoOnFingerprint(const AState: TFingerprintState;
-  var AAction: TConnectHashAction);
+procedure TSSH2Client.DoOnFingerprint(const AState: TFingerprintState; var AAction: TConnectHashAction);
 begin
   if Assigned(FOnFingerprint) then
     FOnFingerprint(Self, AState, AAction);
@@ -1607,8 +1611,7 @@ begin
     RaiseSSHError;
 end;
 
-procedure TSFTPClient.Get(const ASourceFileName: WideString; const ADest: TStream;
-  AResume: Boolean);
+procedure TSFTPClient.Get(const ASourceFileName: WideString; const ADest: TStream; AResume: Boolean);
 var
   Attribs: LIBSSH2_SFTP_ATTRIBUTES;
   Transfered, Total: UInt64;
@@ -1736,7 +1739,7 @@ begin
   Result := S;
 end;
 
-procedure TSFTPClient.List(const AStartPath: WideString);
+procedure TSFTPClient.List(const AStartPath: WideString = '');
 const
   BUF_LEN = 4 * 1024;
 var
@@ -1776,7 +1779,7 @@ begin
   end;
 end;
 
-procedure TSFTPClient.MakeDir(const ADirName: WideString; AMode: Integer; ARecurse: Boolean);
+procedure TSFTPClient.MakeDir(const ADirName: WideString; AMode: Integer = 0; ARecurse: Boolean = False);
 var
   Dir: WideString;
   Mode: Integer;
@@ -1943,8 +1946,7 @@ begin
   inherited;
 end;
 
-procedure TSCPClient.Get(const ASourceFileName: WideString; const ADest: TStream;
-  var AStat: TStructStat);
+procedure TSCPClient.Get(const ASourceFileName: WideString; const ADest: TStream; var AStat: TStructStat);
 const
   BUF_LEN = 24 * 1024 - 1;
 var
@@ -1980,8 +1982,7 @@ begin
   end;
 end;
 
-procedure TSCPClient.Put(const ASource: TStream; const ADestFileName: WideString;
-  AFileSize: UInt64; ATime, MTime: TDateTime; AMode: Integer);
+procedure TSCPClient.Put(const ASource: TStream; const ADestFileName: WideString; AFileSize: UInt64; ATime, MTime: TDateTime; AMode: Integer = 0);
 const
   BUF_LEN = 8 * 1024 - 1;
 var
